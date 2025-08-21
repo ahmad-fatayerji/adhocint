@@ -7,8 +7,8 @@ export default function Home() {
     <main>
       {/* Hero */}
       <section className="section">
-        <div className="container mx-auto px-4 grid md:grid-cols-2 items-center gap-10">
-          <div>
+        <div className="container mx-auto px-4 max-w-5xl grid md:grid-cols-2 items-start gap-10">
+          <div className="md:col-span-2 lg:col-span-1">
             <h1 className="hero-title font-bold">
               Building with precision. Delivering with integrity.
             </h1>
@@ -19,23 +19,12 @@ export default function Home() {
               budget.
             </p>
             <div className="mt-6 flex gap-3">
-              <a href="#projects">
+              <a href="/projects">
                 <Button>View Projects</Button>
               </a>
               <a href="#contact">
                 <Button variant="outline">Contact Us</Button>
               </a>
-            </div>
-          </div>
-          <div className="relative">
-            <div className="absolute inset-0 gradient-brand opacity-20 rounded-2xl blur-2xl" />
-            <div className="relative rounded-2xl border bg-white shadow-lg p-6 flex items-center justify-center">
-              <Image
-                src="/logo.png"
-                alt="AD HOC Logo"
-                width={300}
-                height={300}
-              />
             </div>
           </div>
         </div>
@@ -76,25 +65,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Projects */}
-      <section id="projects" className="section">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold tracking-tight">Projects</h2>
-          <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}>
-                <div className="h-40 w-full gradient-brand rounded-t-xl" />
-                <CardContent>
-                  <h3 className="font-semibold">Project {i}</h3>
-                  <p className="text-sm text-black/70">
-                    Brief description of scope, materials, and outcomes.
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Projects removed from homepage; now a dedicated /projects page */}
 
       {/* Contact */}
       <section
@@ -114,25 +85,25 @@ export default function Home() {
               required
               name="name"
               placeholder="Name"
-              className="col-span-2 md:col-span-1 h-11 px-3 rounded-md text-black"
+              className="form-field col-span-2 md:col-span-1 h-11 px-3 text-black"
             />
             <input
               required
               name="email"
               type="email"
               placeholder="Email"
-              className="col-span-2 md:col-span-1 h-11 px-3 rounded-md text-black"
+              className="form-field col-span-2 md:col-span-1 h-11 px-3 text-black"
             />
             <input
               name="subject"
               placeholder="Subject"
-              className="col-span-2 h-11 px-3 rounded-md text-black"
+              className="form-field col-span-2 h-11 px-3 text-black"
             />
             <textarea
               required
               name="message"
               placeholder="Message"
-              className="col-span-2 min-h-28 p-3 rounded-md text-black"
+              className="form-field col-span-2 min-h-28 p-3 text-black"
             />
             <Button className="col-span-2" variant="secondary">
               Send Inquiry

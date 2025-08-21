@@ -9,6 +9,17 @@ export const metadata: Metadata = {
   },
   description:
     "Contracting and construction solutions with quality and reliability.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icon-192.png",
+    shortcut: "/favicon.ico",
+  },
+  manifest: "/site.webmanifest",
+  themeColor: "#3960AD",
 };
 
 export default function RootLayout({

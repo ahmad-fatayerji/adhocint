@@ -40,6 +40,15 @@ body {
   font-family: var(--font-myriad);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+/* Ensure anchored sections aren't hidden behind sticky navbar */
+section[id] {
+  scroll-margin-top: 9rem; /* accommodate larger navbar logo */
+}
+
 .container {
   max-width: 1200px;
 }
@@ -75,4 +84,29 @@ body {
     var(--brand-blue) 60%,
     var(--brand-brown)
   );
+}
+
+/* Lightweight ripple for clickable nav items */
+.nav-ripple:active {
+  transform: translateY(1px);
+}
+
+/* Form fields (contact section) */
+.form-field {
+  background: #ffffff;
+  border: 1px solid
+    color-mix(in oklab, var(--brand-blue) 35%, var(--brand-brown));
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: outline-color 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.form-field::placeholder {
+  color: #555;
+  opacity: 0.55;
+}
+.form-field:focus {
+  outline: 2px solid var(--brand-brown);
+  outline-offset: 1px;
+  border-color: var(--brand-brown);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--brand-brown) 35%, transparent);
 }

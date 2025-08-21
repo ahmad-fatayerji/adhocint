@@ -5,7 +5,9 @@ import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
-  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "sending" | "success" | "error"
+  >("idle");
   const [error, setError] = useState<string>("");
   const tRef = useRef<number>(Date.now());
 
@@ -24,14 +26,14 @@ export default function Home() {
     setStatus("sending");
     setError("");
     try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Failed');
+        throw new Error(data.error || "Failed");
       }
       setStatus("success");
       form.reset();
@@ -39,7 +41,7 @@ export default function Home() {
       setTimeout(() => setStatus("idle"), 5000);
     } catch (err: any) {
       setStatus("error");
-      setError(err.message || 'Error');
+      setError(err.message || "Error");
     }
   }
   return (
@@ -121,7 +123,13 @@ export default function Home() {
           </div>
           <form className="grid grid-cols-2 gap-3" onSubmit={onSubmit}>
             {/* Honeypot field (hidden from users) */}
-            <input type="text" name="company" className="hidden" tabIndex={-1} autoComplete="off" />
+            <input
+              type="text"
+              name="company"
+              className="hidden"
+              tabIndex={-1}
+              autoComplete="off"
+            />
             <input
               required
               name="name"
@@ -147,13 +155,19 @@ export default function Home() {
               className="form-field col-span-2 min-h-28 p-3 text-black"
             />
             <Button className="col-span-2" variant="secondary">
-              {status === 'sending' ? 'Sending...' : status === 'success' ? 'Sent!' : 'Send Inquiry'}
+              {status === "sending"
+                ? "Sending..."
+                : status === "success"
+                ? "Sent!"
+                : "Send Inquiry"}
             </Button>
-            {status === 'error' && (
+            {status === "error" && (
               <p className="col-span-2 text-sm text-red-600">{error}</p>
             )}
-            {status === 'success' && (
-              <p className="col-span-2 text-sm text-green-600">Message sent successfully.</p>
+            {status === "success" && (
+              <p className="col-span-2 text-sm text-green-600">
+                Message sent successfully.
+              </p>
             )}
           </form>
         </div>

@@ -1,26 +1,78 @@
 @import "tailwindcss";
 
+/* Brand tokens (from attachments)
+  Brown: rgb(149,131,73)  -> #958349
+  Blue:  rgb(57,96,173)   -> #3960AD
+  Font:  "Myriamd" (custom). Fallbacks provided.
+  Display size: 58.85px, Body lead: 27.18px
+*/
+
 :root {
+  --brand-blue: #3960ad;
+  --brand-brown: #958349;
+  --brand-dark: #0a0a0a;
+  --brand-light: #f7f7f7;
   --background: #ffffff;
   --foreground: #171717;
+  --font-myriad: "Myriamd", "Inter", system-ui, -apple-system, Segoe UI, Roboto,
+    Arial, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Optional local font hook. Place files under /public/fonts/Myriamd-*.woff2 */
+@font-face {
+  font-family: "Myriamd";
+  src: url("/fonts/Myriamd.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Tailwind v4 uses CSS variables directly in utilities; we expose ours above. */
+
+html,
+body {
+  height: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-myriad);
+}
+
+.container {
+  max-width: 1200px;
+}
+
+/* Utilities */
+.gradient-brand {
+  background-image: linear-gradient(
+    135deg,
+    var(--brand-blue),
+    var(--brand-brown)
+  );
+}
+
+.section {
+  padding-block: 4rem;
+}
+
+.hero-title {
+  font-size: 58.85px; /* Big */
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.hero-subtitle {
+  font-size: 27.18px; /* Small */
+  line-height: 1.3;
+  color: color-mix(in oklab, var(--foreground) 85%, var(--brand-dark));
+}
+
+.brand-ring {
+  --tw-ring-color: color-mix(
+    in oklab,
+    var(--brand-blue) 60%,
+    var(--brand-brown)
+  );
 }

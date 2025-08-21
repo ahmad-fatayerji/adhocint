@@ -1,103 +1,151 @@
 import Image from "next/image";
+import Button from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main>
+      {/* Hero */}
+      <section className="section">
+        <div className="container mx-auto px-4 grid md:grid-cols-2 items-center gap-10">
+          <div>
+            <h1 className="hero-title font-bold">
+              Building with precision. Delivering with integrity.
+            </h1>
+            <p className="hero-subtitle mt-4 max-w-prose">
+              AD HOC International s.a.r.l is a contracting company specializing
+              in civil works, fit-outs, and infrastructure projects. We combine
+              craftsmanship with modern methods to deliver on time and on
+              budget.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <a href="#projects">
+                <Button>View Projects</Button>
+              </a>
+              <a href="#contact">
+                <Button variant="outline">Contact Us</Button>
+              </a>
+            </div>
+          </div>
+          <div className="relative">
+            <div className="absolute inset-0 gradient-brand opacity-20 rounded-2xl blur-2xl" />
+            <div className="relative rounded-2xl border bg-white shadow-lg p-6 flex items-center justify-center">
+              <Image
+                src="/logo.png"
+                alt="AD HOC Logo"
+                width={300}
+                height={300}
+              />
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </section>
+
+      {/* About */}
+      <section id="about" className="section bg-[var(--brand-light)]/60">
+        <div className="container mx-auto px-4 grid md:grid-cols-3 gap-6">
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-[var(--brand-blue)]">
+                About Us
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-balance leading-7">
+                With years of experience in contracting, our multidisciplinary
+                team manages projects from concept to handover. We adhere to
+                rigorous quality standards and safety practices while staying
+                responsive to client needs.
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-[var(--brand-brown)]">
+                Why Choose Us
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Transparent timelines and budgets</li>
+                <li>Skilled workforce and trusted partners</li>
+                <li>Quality materials and finishes</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Projects */}
+      <section id="projects" className="section">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold tracking-tight">Projects</h2>
+          <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <div className="h-40 w-full gradient-brand rounded-t-xl" />
+                <CardContent>
+                  <h3 className="font-semibold">Project {i}</h3>
+                  <p className="text-sm text-black/70">
+                    Brief description of scope, materials, and outcomes.
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Contact */}
+      <section
+        id="contact"
+        className="section bg-[var(--brand-blue)] text-white"
+      >
+        <div className="container mx-auto px-4 grid md:grid-cols-2 gap-8 items-center">
+          <div>
+            <h2 className="text-3xl font-bold">Let’s work together</h2>
+            <p className="mt-2 text-white/90">
+              Send us your project details and we’ll get back within one
+              business day.
+            </p>
+          </div>
+          <form className="grid grid-cols-2 gap-3">
+            <input
+              required
+              name="name"
+              placeholder="Name"
+              className="col-span-2 md:col-span-1 h-11 px-3 rounded-md text-black"
+            />
+            <input
+              required
+              name="email"
+              type="email"
+              placeholder="Email"
+              className="col-span-2 md:col-span-1 h-11 px-3 rounded-md text-black"
+            />
+            <input
+              name="subject"
+              placeholder="Subject"
+              className="col-span-2 h-11 px-3 rounded-md text-black"
+            />
+            <textarea
+              required
+              name="message"
+              placeholder="Message"
+              className="col-span-2 min-h-28 p-3 rounded-md text-black"
+            />
+            <Button className="col-span-2" variant="secondary">
+              Send Inquiry
+            </Button>
+          </form>
+        </div>
+      </section>
+
+      <footer className="py-6 border-t border-black/10">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-3 text-sm">
+          <span>© {new Date().getFullYear()} AD HOC International s.a.r.l</span>
+        </div>
       </footer>
-    </div>
+    </main>
   );
 }

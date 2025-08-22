@@ -1,0 +1,37 @@
+[
+  {
+    "title": "Architecture",
+    "children": [
+      { "title": "Finishes" },
+      { "title": "Partitions" },
+      { "title": "Specialty Elements" }
+    ]
+  },
+  {
+    "title": "Civil",
+    "children": [
+      { "title": "Concrete" },
+      { "title": "Masonry" },
+      { "title": "Steel Coordination" }
+    ]
+  },
+  {
+    "title": "Mechanical (HVAC)",
+    "children": [
+      { "title": "Cooling Systems" },
+      { "title": "Ventilation" },
+      { "title": "Ductwork" },
+      { "title": "Controls" }
+    ]
+  },
+  {
+    "title": "Electrical",
+    "note": "(See Engineering tab for detailed systems)",
+    "children": [
+      { "title": "Power Distribution" },
+      { "title": "Lighting & Control" },
+      { "title": "Low Current & ELV" },
+      { "title": "Safety & Security" }
+    ]
+  }
+]

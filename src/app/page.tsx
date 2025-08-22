@@ -122,6 +122,13 @@ export default function Home() {
             </CardContent>
           </Card>
         </div>
+        <div className="container mx-auto px-4 mt-6 text-center">
+          <a href="/services">
+            <Button className="px-8">
+              Learn more about the services we offer
+            </Button>
+          </a>
+        </div>
       </section>
 
       {/* Projects removed from homepage; now a dedicated /projects page */}
@@ -135,8 +142,8 @@ export default function Home() {
           <div>
             <h2 className="text-3xl font-bold">Let’s work together</h2>
             <p className="mt-2 text-white/90">
-              Send us your project details and we’ll get back within one
-              business day.
+              Send us your project details and we’ll get back to you as soon as
+              possible.
             </p>
           </div>
           <form className="grid grid-cols-2 gap-3" onSubmit={onSubmit}>

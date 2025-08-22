@@ -81,12 +81,30 @@ export default function Home() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-balance leading-7">
-                With years of experience in contracting, our multidisciplinary
-                team manages projects from concept to handover. We adhere to
-                rigorous quality standards and safety practices while staying
-                responsive to client needs.
-              </p>
+              <ul className="list-disc pl-5 space-y-2 leading-7 text-balance">
+                <li>
+                  AD HOC is multi-disciplinary architectural and engineering
+                  consultancy and construction firm.
+                </li>
+                <li>
+                  AD HOC has the practical know-how, insight and resources to
+                  offer comprehensive services and specialized solutions.
+                </li>
+                <li>
+                  The consultancy successfully rises to design challenges and
+                  our array of services addresses the real needs of clients in
+                  both the public and private sectors.
+                </li>
+                <li>
+                  AD HOC achieves this by building on our long-standing
+                  experience and by analyzing each project's context,
+                  environment, budget, purpose and goal.
+                </li>
+                <li>
+                  In the heart of Beirut-Lebanon, AD HOC International is
+                  located in Hamra area.
+                </li>
+              </ul>
             </CardContent>
           </Card>
           <Card>
@@ -97,9 +115,9 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <ul className="list-disc pl-5 space-y-2">
-                <li>Transparent timelines and budgets</li>
-                <li>Skilled workforce and trusted partners</li>
-                <li>Quality materials and finishes</li>
+                <li>Placeholder benefit one</li>
+                <li>Placeholder benefit two</li>
+                <li>Placeholder benefit three</li>
               </ul>
             </CardContent>
           </Card>
@@ -111,7 +129,7 @@ export default function Home() {
       {/* Contact */}
       <section
         id="contact"
-        className="section bg-[var(--brand-blue)] text-white"
+        className="section pb-6 bg-[var(--brand-blue)] text-white"
       >
         <div className="container mx-auto px-4 grid md:grid-cols-2 gap-8 items-center">
           <div>
@@ -173,11 +191,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="py-6 border-t border-black/10">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-3 text-sm">
-          <span>© {new Date().getFullYear()} AD HOC International s.a.r.l</span>
-        </div>
-      </footer>
+      {/* Footer moved to layout */}
     </main>
   );
 }

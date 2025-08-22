@@ -59,7 +59,7 @@ export default function RootLayout({
                 <span className="hidden sm:inline">info@example.com</span>
               </a>
               <a
-                href="https://www.linkedin.com/company/your-company"
+                href="https://www.linkedin.com/company/ad-hoc-international-s.a.r.l/"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="LinkedIn"

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import engineeringData from "@/data/services/engineering.json" assert { type: "json" };
-import executionData from "@/data/services/execution.json" assert { type: "json" };
+import engineeringData from "@/data/services/engineering.json";
+import executionData from "@/data/services/execution.json";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Hierarchical data model

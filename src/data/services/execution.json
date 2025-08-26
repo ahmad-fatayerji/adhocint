@@ -26,7 +26,6 @@
   },
   {
     "title": "Electrical",
-    "note": "(See Engineering tab for detailed systems)",
     "children": [
       { "title": "Power Distribution" },
       { "title": "Lighting & Control" },

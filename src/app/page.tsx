@@ -54,10 +54,11 @@ export default function Home() {
               Building with precision. Delivering with integrity.
             </h1>
             <p className="hero-subtitle mt-4 max-w-prose">
-              AD HOC International s.a.r.l is a contracting company specializing
-              in civil works, fit-outs, and infrastructure projects. We combine
-              craftsmanship with modern methods to deliver on time and on
-              budget.
+              AD HOC International is your partner for engineering, construction
+              and project management in the general contracting field. From
+              concept design, detailed design, tender documents, shop drawings,
+              to a complete solution, the company manages projects of small and
+              medium sizes in a cost-effective way.
             </p>
             <div className="mt-6 flex gap-3">
               <a href="/projects">
@@ -115,9 +116,14 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <ul className="list-disc pl-5 space-y-2">
-                <li>Placeholder benefit one</li>
-                <li>Placeholder benefit two</li>
-                <li>Placeholder benefit three</li>
+                <li>Senior leadership directly engaged on every project</li>
+                <li>Agile decision-making for faster issue resolution</li>
+                <li>Tailored, right-sized engineering (no over-design)</li>
+                <li>
+                  Integrated multidisciplinary coordination minimizing rework
+                </li>
+                <li>Transparent communication & single point of contact</li>
+                <li>Accountability and long-term partner mindset</li>
               </ul>
             </CardContent>
           </Card>

@@ -8,8 +8,8 @@ export interface ProjectRowProps {
   client: string;
   year: number | string;
   description: string;
-  images: { src: string; alt?: string }[];
-  fit?: "cover" | "contain";
+  folder: string; // folder under /public/projects
+  cover: string; // cover image path
 }
 
 export default function ProjectRow({
@@ -17,11 +17,21 @@ export default function ProjectRow({
   client,
   year,
   description,
-  images,
-  fit = "cover",
+  folder,
+  cover,
 }: ProjectRowProps) {
+  const [images, setImages] = useState<string[]>([cover]);
   const [index, setIndex] = useState(0);
   const total = images.length;
+  // Lazy load full list only when component mounts
+  useState(() => {
+    fetch(`/api/project-images?folder=${encodeURIComponent(folder)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.images) && d.images.length) setImages(d.images);
+      })
+      .catch(() => {});
+  });
   function prev() {
     setIndex((i) => (i - 1 + total) % total);
   }
@@ -43,13 +53,11 @@ export default function ProjectRow({
               className="absolute inset-0 flex items-center justify-center"
             >
               <Image
-                src={images[index].src}
-                alt={images[index].alt || title}
+                src={images[index]}
+                alt={title}
                 fill
                 sizes="190px"
-                className={
-                  fit === "contain" ? "object-contain p-2" : "object-cover"
-                }
+                className="object-cover"
                 priority={false}
               />
             </motion.div>

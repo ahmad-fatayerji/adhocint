@@ -1,98 +1,66 @@
 [
   {
-    "title": "Rehabilitate the Morgue, Warehouse and Oxygen Tank at Marjayoun Governmental Hospital",
-    "client": "ICRC",
-    "year": 2025,
-    "description": "Rehabilitation of morgue, warehouse and oxygen tank facilities at Marjayoun Governmental Hospital.",
-    "images": [{ "src": "/projects/Picture1.jpg", "alt": "Marjayoun facility rehabilitation" }],
-    "fit": "cover"
-  },
-  {
-    "title": "Training Center at RHUH",
+    "title": "Marjayoun Governmental Hospital Upgrades",
     "client": "ICRC",
     "year": 2024,
-    "description": "Training Center Refit at Rafik Hariri University Hospital (spatial reconfiguration, LV distribution, lighting modernization).",
-    "images": [{ "src": "/projects/Picture2.jpg", "alt": "RHUH training center" }],
-    "fit": "cover"
+    "description": "Rehabilitation of morgue, warehouse and oxygen systems (infrastructure renewal and service continuity).",
+    "folder": "2024-ICRC MGH",
+    "cover": "/projects/2024-ICRC MGH/AGIS1400.JPG"
   },
   {
-    "title": "Building of a Shelter in RHUH – Beirut",
+    "title": "RHUH Training Center Refit",
     "client": "ICRC",
     "year": 2024,
-    "description": "Construction of ~250 m² sand wall shelter in basement 2 at RHUH.",
-    "images": [{ "src": "/projects/Picture3.jpg", "alt": "Shelter construction RHUH" }],
-    "fit": "cover"
+    "description": "Spatial reconfiguration, LV distribution upgrades and lighting modernization at Rafik Hariri University Hospital training center.",
+    "folder": "2024-ICRC RHUH Training",
+    "cover": "/projects/2024-ICRC RHUH Training/IMG_8006.JPG"
   },
   {
-    "title": "Emile Helou Police Station ISF Forensic LAB Renovation – Beirut - Lebanon",
+    "title": "RHUH Shelter Construction",
     "client": "ICRC",
-    "year": 2022,
-    "description": "Renovation works including new steel mezzanine at Emile Helou Police Station Forensic Lab.",
-    "images": [{ "src": "/projects/Picture4.jpg", "alt": "Forensic lab renovation" }],
-    "fit": "cover"
+    "year": 2024,
+    "description": "Construction of sand wall shelter (~250 m²) in RHUH basement 2 providing protected functional space.",
+    "folder": "2024-ICRC Shelter",
+    "cover": "/projects/2024-ICRC Shelter/placeholder.jpg"
   },
   {
-    "title": "Helicopter Hangars for the Lebanese Army at Hamat Airbase - North Lebanon",
+    "title": "Steel Hangars – Hamat Airbase Phase",
     "client": "Lebanese Army",
-    "year": 2022,
-    "description": "Construction of three new helicopter hangars at Hamat Airbase (total steel ~68,000 kg).",
-    "images": [{ "src": "/projects/Picture5.jpg", "alt": "Helicopter hangars Hamat" }],
-    "fit": "cover"
+    "year": 2024,
+    "description": "New helicopter hangar structures and associated ancillary works (multi-phase).",
+    "folder": "2024-Lebarmy Hamat",
+    "cover": "/projects/2024-Lebarmy Hamat/placeholder.jpg"
   },
   {
-    "title": "Rehabilitation of Hotel Bathrooms inside the US Embassy Premises – Awkar - Beirut",
+    "title": "Emile Helou Forensic Lab Renovation",
+    "client": "ICRC",
+    "year": 2022,
+    "description": "Structural & fit-out renovation including mezzanine steel platform for police forensic laboratory modernization.",
+    "folder": "2022-ICRC-Emile Helou",
+    "cover": "/projects/2022-ICRC-Emile Helou/placeholder.jpg"
+  },
+  {
+    "title": "US Embassy Guest Facility Bathrooms Rehab",
     "client": "US EMBASSY",
     "year": 2021,
-    "description": "Complete rehabilitation of hotel bathrooms including infrastructure upgrades.",
-    "images": [{ "src": "/projects/Picture6.png", "alt": "US Embassy bathrooms rehab" }],
-    "fit": "contain"
+    "description": "Comprehensive bathroom infrastructure and finish upgrades within secure compound facilities.",
+    "folder": "2021-BRASS Bathrooms",
+    "cover": "/projects/2021-BRASS Bathrooms/placeholder.jpg"
   },
   {
-    "title": "North Basketball Court Rehabilitation – PRP Program – North Lebanon",
+    "title": "North Region Basketball Court",
     "client": "ICRC",
     "year": 2021,
-    "description": "Demolition and reconstruction of basketball court to international standards at Forum of The Handicapped (ICRC funded).",
-    "images": [{ "src": "/projects/Picture7.jpg", "alt": "Basketball court rehabilitation" }],
-    "fit": "cover"
+    "description": "Demolition and reconstruction of regulation-compliant basketball court (PRP program).",
+    "folder": "2021-ICRC North Basketball Court",
+    "cover": "/projects/2021-ICRC North Basketball Court/placeholder.jpg"
   },
   {
-    "title": "Preparation of the Medical Isolation Ward – General Security Retention Center – Sahet al Abed - Beirut",
+    "title": "Medical Isolation Ward – Retention Center",
     "client": "ICRC",
     "year": 2020,
-    "description": "Construction of a medical isolation ward to provide a controlled infection environment (ICRC funded).",
-    "images": [{ "src": "/projects/Picture8.png", "alt": "Medical isolation ward" }],
-    "fit": "cover"
-  },
-  {
-    "title": "Provision of the Medical Isolation Ward for ISF in Roumieh Central Prison – Mount Lebanon",
-    "client": "ICRC",
-    "year": 2020,
-    "description": "Construction of medical isolation ward facilities for ISF in Roumieh Central Prison (ICRC funded).",
-    "images": [{ "src": "/projects/Picture9.png", "alt": "Roumieh isolation ward" }],
-    "fit": "contain"
-  },
-  {
-    "title": "Installation of Motorized Sliding Doors & Steel Structure for Helicopter Hangars at Hamat Airbase - North Lebanon",
-    "client": "Lebanese Army",
-    "year": "2018-2019",
-    "description": "50 tons of steel works, electrical & automation for new motorized hangar sliding doors on sloped ground (~38,000 kg).",
-    "images": [{ "src": "/projects/Picture10.jpg", "alt": "Motorized sliding doors installation" }],
-    "fit": "cover"
-  },
-  {
-    "title": "Relocation of an Engagement Skills Training Simulator at Hamat Airbase – North Lebanon",
-    "client": "Lebanese Army",
-    "year": 2019,
-    "description": "Earth and civil works plus dismantling & reassembly of EST shooting simulator at Hamat Airbase.",
-    "images": [{ "src": "/projects/Picture11.jpg", "alt": "EST simulator relocation" }],
-    "fit": "cover"
-  },
-  {
-    "title": "Structural Rehabilitation Works for the Ammunition Building in Riak Airbase – Bekaa Lebanon",
-    "client": "Lebanese Army",
-    "year": 2018,
-    "description": "Rehabilitation of existing footings, columns and drop beams (1940s era) and installation of new tie beams.",
-    "images": [{ "src": "/projects/Picture12.jpg", "alt": "Ammunition building structural rehab" }],
-    "fit": "cover"
+    "description": "Controlled infection isolation ward construction (Sahet al Abed).",
+    "folder": "2020-Lebarmy Monroe",
+    "cover": "/projects/2020-Lebarmy Monroe/placeholder.jpg"
   }
 ]

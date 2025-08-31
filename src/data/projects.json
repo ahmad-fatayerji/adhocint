@@ -21,7 +21,7 @@
     "year": 2024,
     "description": "Construction of sand wall shelter (~250 m²) in RHUH basement 2 providing protected functional space.",
     "folder": "2024-ICRC Shelter",
-    "cover": "/projects/2024-ICRC Shelter/placeholder.jpg"
+    "cover": "/projects/2024-ICRC Shelter/cover.JPG"
   },
   {
     "title": "Steel Hangars – Hamat Airbase Phase",
@@ -29,7 +29,15 @@
     "year": 2024,
     "description": "New helicopter hangar structures and associated ancillary works (multi-phase).",
     "folder": "2024-Lebarmy Hamat",
-    "cover": "/projects/2024-Lebarmy Hamat/placeholder.jpg"
+    "cover": "/projects/2024-Lebarmy Hamat/cover.JPG"
+  },
+  {
+    "title": "ICRC RHUH Fire Doors Replacement",
+    "client": "ICRC",
+    "year": 2023,
+    "description": "Replacement and certification of fire-rated door assemblies at RHUH to improve compartmentation.",
+    "folder": "2023-ICRC RHUH Doors",
+    "cover": "/projects/2023-ICRC RHUH Doors/cover.JPG"
   },
   {
     "title": "Emile Helou Forensic Lab Renovation",
@@ -37,7 +45,7 @@
     "year": 2022,
     "description": "Structural & fit-out renovation including mezzanine steel platform for police forensic laboratory modernization.",
     "folder": "2022-ICRC-Emile Helou",
-    "cover": "/projects/2022-ICRC-Emile Helou/placeholder.jpg"
+    "cover": "/projects/2022-ICRC-Emile Helou/cover.JPG"
   },
   {
     "title": "US Embassy Hotel Bathrooms Rehab",
@@ -45,7 +53,7 @@
     "year": 2021,
     "description": "Comprehensive bathroom infrastructure and finish upgrades within secure compound facilities.",
     "folder": "2021-BRASS Bathrooms",
-    "cover": "/projects/2021-BRASS Bathrooms/placeholder.jpg"
+    "cover": "/projects/2021-BRASS Bathrooms/cover.JPG"
   },
   {
     "title": "North Basketball Court Rehabilitation",
@@ -53,14 +61,78 @@
     "year": 2021,
     "description": "Demolition and reconstruction of regulation-compliant basketball court (PRP program).",
     "folder": "2021-ICRC North Basketball Court",
-    "cover": "/projects/2021-ICRC North Basketball Court/placeholder.jpg"
+    "cover": "/projects/2021-ICRC North Basketball Court/cover.JPG"
   },
   {
-    "title": "Hotel Monroe-Ain El Mraisseh",
+    "title": "Hotel Monroe Isolation Ward Conversion",
     "client": "Lebanese Army",
     "year": 2020,
-    "description": "Controlled infection isolation ward construction (Sahet al Abed).",
+    "description": "Rapid conversion to controlled infection isolation ward (Sahet al Abed).",
     "folder": "2020-Lebarmy Monroe",
-    "cover": "/projects/2020-Lebarmy Monroe/placeholder.jpg"
+    "cover": "/projects/2020-Lebarmy Monroe/cover.JPG"
+  },
+  {
+    "title": "Baabdat Hills Residential Works",
+    "client": "Private",
+    "year": 2020,
+    "description": "Finishing and infrastructure works across hillside residential development phases.",
+    "folder": "2020-Baabdat Hills",
+    "cover": "/projects/2020-Baabdat Hills/cover.JPG"
+  },
+  {
+    "title": "EST Relocation Facilities Fit-Out",
+    "client": "Lebanese Army",
+    "year": 2019,
+    "description": "Mechanical, electrical and architectural works for EST unit relocation.",
+    "folder": "2019-Lebarmy EST Relocation",
+    "cover": "/projects/2019-Lebarmy EST Relocation/cover.jpg"
+  },
+  {
+    "title": "MOD CR Building Refurbishment",
+    "client": "Lebanese Army",
+    "year": 2018,
+    "description": "Selective demolition, structural repairs and interior refurbishment (MOD CR).",
+    "folder": "2018-Lebarmy MOD CR",
+    "cover": "/projects/2018-Lebarmy MOD CR/cover.JPG"
+  },
+  {
+    "title": "Riak Facility Upgrade",
+    "client": "Lebanese Army",
+    "year": 2018,
+    "description": "Site works, building services upgrades and architectural finishes (Riak site).",
+    "folder": "2018-Lebarmy Riak",
+    "cover": "/projects/2018-Lebarmy Riak/cover.JPG"
+  },
+  {
+    "title": "Batroun Barracks Refurbishment",
+    "client": "Lebanese Army",
+    "year": 2018,
+    "description": "Barracks interior and services refurbishment in Batroun sector.",
+    "folder": "2018- Lebarmy Batroun",
+    "cover": "/projects/2018- Lebarmy Batroun/cover.JPG"
+  },
+  {
+    "title": "Baabda Justice Palace Works",
+    "client": "ICRC",
+    "year": 2017,
+    "description": "Civil & MEP upgrades within Justice Palace for program functional improvements.",
+    "folder": "2017-ICRC Baabda JP",
+    "cover": "/projects/2017-ICRC Baabda JP/cover.jpg"
+  },
+  {
+    "title": "Nini Hospital Operating Room Rehab",
+    "client": "Private Healthcare",
+    "year": 2017,
+    "description": "Operating theatre interior finishes and building services rehabilitation.",
+    "folder": "2017-Nini OR",
+    "cover": "/projects/2017-Nini OR/cover.JPG"
+  },
+  {
+    "title": "Gandour Industrial Facility Works",
+    "client": "Gandour",
+    "year": 2017,
+    "description": "Selective industrial building upgrades and systems improvements.",
+    "folder": "Gandour",
+    "cover": "/projects/Gandour/cover.jpg"
   }
 ]

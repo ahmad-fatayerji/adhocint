@@ -40,7 +40,7 @@
     "cover": "/projects/2022-ICRC-Emile Helou/placeholder.jpg"
   },
   {
-    "title": "US Embassy Guest Facility Bathrooms Rehab",
+    "title": "US Embassy Hotel Bathrooms Rehab",
     "client": "US EMBASSY",
     "year": 2021,
     "description": "Comprehensive bathroom infrastructure and finish upgrades within secure compound facilities.",
@@ -48,7 +48,7 @@
     "cover": "/projects/2021-BRASS Bathrooms/placeholder.jpg"
   },
   {
-    "title": "North Region Basketball Court",
+    "title": "North Basketball Court Rehabilitation",
     "client": "ICRC",
     "year": 2021,
     "description": "Demolition and reconstruction of regulation-compliant basketball court (PRP program).",
@@ -56,8 +56,8 @@
     "cover": "/projects/2021-ICRC North Basketball Court/placeholder.jpg"
   },
   {
-    "title": "Medical Isolation Ward – Retention Center",
-    "client": "ICRC",
+    "title": "Hotel Monroe-Ain El Mraisseh",
+    "client": "Lebanese Army",
     "year": 2020,
     "description": "Controlled infection isolation ward construction (Sahet al Abed).",
     "folder": "2020-Lebarmy Monroe",

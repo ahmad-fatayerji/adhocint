@@ -1,0 +1,75 @@
+name: Deploy Production (master)
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Archive build artifacts
+        run: |
+          tar -czf build-artifacts.tar.gz .next package.json package-lock.json public next.config.* tsconfig.json
+
+      - name: Upload to Server
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          REMOTE_PATH: /var/www/adhocint.com/adhocint
+        run: |
+          echo "$DEPLOY_SSH_KEY" > key.pem
+          chmod 600 key.pem
+          rsync -avz -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
+            --delete \
+            --exclude node_modules \
+            --exclude .git \
+            build-artifacts.tar.gz $SERVER_USER@$SERVER_IP:$REMOTE_PATH/
+
+      - name: Deploy remotely
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          REMOTE_PATH: /var/www/adhocint.com/adhocint
+        run: |
+          echo "$DEPLOY_SSH_KEY" > key.pem
+          chmod 600 key.pem
+          ssh -i key.pem -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP <<'EOF'
+            set -e
+            cd $REMOTE_PATH
+            tar -xzf build-artifacts.tar.gz
+            npm ci --omit=dev
+            pm2 delete adhocint || true
+            pm2 start npm --name adhocint -- start
+            pm2 save
+          EOF
+
+      - name: Cleanup keys
+        if: always()
+        run: rm -f key.pem

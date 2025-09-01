@@ -11,12 +11,19 @@ export const metadata: Metadata = {
     "Contracting and construction solutions with quality and reliability.",
   icons: {
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      {
+        url: "/web-app-manifest-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/web-app-manifest-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
     ],
-    apple: "/icon-192.png",
-    shortcut: "/favicon.ico",
+    apple: "/web-app-manifest-192x192.png",
+    shortcut: "/web-app-manifest-192x192.png",
   },
   manifest: "/site.webmanifest",
   themeColor: "#3960AD",
@@ -39,27 +46,7 @@ export default function RootLayout({
             </span>
             <div className="flex items-center gap-5">
               <a
-                href="mailto:info@example.com"
-                className="flex items-center gap-2 font-medium text-[var(--brand-blue)] hover:underline"
-                aria-label="Email us"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5"
-                >
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z" />
-                  <path d="m22 6-10 7L2 6" />
-                </svg>
-                <span className="hidden sm:inline">info@example.com</span>
-              </a>
-              <a
-                href="https://www.linkedin.com/company/your-company"
+                href="https://www.linkedin.com/company/ad-hoc-international-s.a.r.l/"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="LinkedIn"

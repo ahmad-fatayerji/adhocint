@@ -1,0 +1,65 @@
+[
+  {
+    "title": "Engineering",
+    "children": [
+      { "title": "Feasibility & Concept Studies" },
+      { "title": "Basic & Detailed Design" },
+      { "title": "Discipline Coordination (Civil, Structural, Architectural, Mechanical, Electrical, Instrumentation, Controls)" },
+      { "title": "Value Engineering & Constructability Reviews" },
+      { "title": "Engineering Deliverables (Specs, Datasheets, Calculations, Drawings, BOQs)" }
+    ]
+  },
+  {
+    "title": "Procurement",
+    "children": [
+      { "title": "Vendor Prequalification & RFQ Packages" },
+      { "title": "Bid Evaluation (Technical & Commercial)" },
+      { "title": "Purchasing & Contracting" },
+      { "title": "Expediting & Inspection / FAT" },
+      { "title": "Logistics & Import / Export Compliance" },
+      { "title": "Materials Management & Warehousing" }
+    ]
+  },
+  {
+    "title": "Construction",
+    "children": [
+      { "title": "Site Preparation & Temporary Works" },
+      { "title": "Civil & Structural Works" },
+      { "title": "MEP Installation & Integration" },
+      { "title": "Equipment Setting & Alignment" },
+      { "title": "Piping, Cable Pulling & Termination" },
+      { "title": "Architectural & Finishes" },
+      { "title": "Field Engineering, QA/QC & HSSE Management" }
+    ]
+  },
+  {
+    "title": "Commissioning & Handover",
+    "children": [
+      { "title": "Pre-commissioning (Cleaning, Flushing, Testing)" },
+      { "title": "System Commissioning & Start-up" },
+      { "title": "Performance & Reliability Testing" },
+      { "title": "Punch List Clearance & As-built Documentation" },
+      { "title": "O&M Manuals, Training & Warranty Support" }
+    ]
+  },
+  {
+    "title": "Project & Support Functions",
+    "children": [
+      { "title": "Project Management (Cost, Schedule, Scope, Change)" },
+      { "title": "Risk & Interface Management" },
+      { "title": "Document Control & Reporting" },
+      { "title": "Quality Assurance Plan & Audits" },
+      { "title": "Contract & Claims Management" },
+      { "title": "Sustainability & Lifecycle Considerations" }
+    ]
+  },
+  {
+    "title": "Optional Extensions",
+    "children": [
+      { "title": "Early FEED / Permitting Support" },
+      { "title": "Long-lead Item Strategy & Modularization" },
+      { "title": "Operations Readiness & Asset Data Handover (CMMS/BIM)" },
+      { "title": "Post-commissioning Performance Optimization" }
+    ]
+  }
+]

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import projectsData from "@/data/projects.json" assert { type: "json" };
+import projectsData from "@/data/projects.json";
 import { ProjectRowProps } from "@/components/ProjectRow";
 import Image from "next/image";
 
@@ -8,7 +8,6 @@ interface ProjectData extends ProjectRowProps {}
 const projects = projectsData as unknown as ProjectData[];
 
 export default function ProjectsPage() {
-  const [modalIndex, setModalIndex] = useState<number | null>(null);
   interface GalleryState {
     images: string[];
     index: number;
@@ -27,9 +26,14 @@ export default function ProjectsPage() {
       .then((r) => r.json())
       .then((d) => {
         if (Array.isArray(d.images) && d.images.length) {
+          // Keep cover as first image even if the API returns a different ordering
+          const withCoverFirst = [
+            cover,
+            ...d.images.filter((img: string) => img !== cover),
+          ];
           setGalleries((g) => ({
             ...g,
-            [folder]: { images: d.images, index: 0, loading: false },
+            [folder]: { images: withCoverFirst, index: 0, loading: false },
           }));
         } else {
           setGalleries((g) => ({

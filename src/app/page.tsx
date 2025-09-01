@@ -48,8 +48,8 @@ export default function Home() {
     <main>
       {/* Hero */}
       <section className="section">
-        <div className="container mx-auto px-4 max-w-5xl grid md:grid-cols-2 items-start gap-10">
-          <div className="md:col-span-2 lg:col-span-1">
+        <div className="container mx-auto px-4 max-w-6xl grid lg:grid-cols-2 items-center gap-12">
+          <div>
             <h1 className="hero-title font-bold">
               Building with precision. Delivering with integrity.
             </h1>
@@ -68,6 +68,16 @@ export default function Home() {
                 <Button variant="outline">Contact Us</Button>
               </a>
             </div>
+          </div>
+          <div className="relative w-full aspect-[5/4] lg:aspect-[4/3] rounded-xl overflow-hidden shadow-sm border border-black/5 bg-white">
+            <Image
+              src="/heroimg.jpg"
+              alt="Project montage"
+              fill
+              priority
+              sizes="(max-width:1024px) 100vw, 45vw"
+              className="object-cover"
+            />
           </div>
         </div>
       </section>

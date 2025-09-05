@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import projectsData from "@/data/projects.json";
 import { ProjectRowProps } from "@/components/ProjectRow";
 import Image from "next/image";
@@ -50,6 +51,9 @@ export default function ProjectsPage() {
       });
   }
 
+  // Keep transient direction per change for animation.
+  const [directions, setDirections] = useState<Record<string, 1 | -1>>({});
+
   function changeIndex(folder: string, dir: 1 | -1) {
     setGalleries((g) => {
       const cur = g[folder];
@@ -58,6 +62,7 @@ export default function ProjectsPage() {
       const next = (cur.index + dir + total) % total;
       return { ...g, [folder]: { ...cur, index: next } };
     });
+    setDirections((d) => ({ ...d, [folder]: dir }));
   }
 
   function selectIndex(folder: string, idx: number) {
@@ -84,6 +89,7 @@ export default function ProjectsPage() {
             loading: true,
           };
           const current = g.images[g.index];
+          const dir = directions[p.folder] || 1;
           return (
             <div
               key={p.title}
@@ -130,14 +136,50 @@ export default function ProjectsPage() {
                   }
                 }}
               >
-                <Image
-                  src={current}
-                  alt={p.title}
-                  fill
-                  sizes="(max-width:768px) 100vw, 33vw"
-                  className="object-cover"
-                  priority={false}
-                />
+                <AnimatePresence mode="wait" initial={false} custom={dir}>
+                  <motion.div
+                    key={current}
+                    custom={dir}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    variants={{
+                      enter: (d: number) => ({
+                        x: d > 0 ? 36 : -36,
+                        opacity: 0,
+                        scale: 1.015,
+                      }),
+                      center: {
+                        x: 0,
+                        opacity: 1,
+                        scale: 1,
+                        transition: {
+                          duration: 0.28,
+                          ease: [0.22, 0.7, 0.3, 1],
+                        },
+                      },
+                      exit: (d: number) => ({
+                        x: d > 0 ? -36 : 36,
+                        opacity: 0,
+                        scale: 0.985,
+                        transition: {
+                          duration: 0.24,
+                          ease: [0.4, 0.1, 0.2, 1],
+                        },
+                      }),
+                    }}
+                    className="absolute inset-0"
+                  >
+                    <Image
+                      src={current}
+                      alt={p.title}
+                      fill
+                      sizes="(max-width:768px) 100vw, 33vw"
+                      className="object-cover"
+                      priority={false}
+                    />
+                  </motion.div>
+                </AnimatePresence>
                 {g.images.length > 1 && (
                   <>
                     <button

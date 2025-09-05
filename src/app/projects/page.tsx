@@ -89,7 +89,47 @@ export default function ProjectsPage() {
               key={p.title}
               className="group flex flex-col rounded-xl border border-black/10 bg-white shadow-sm overflow-hidden"
             >
-              <div className="relative aspect-[16/10] bg-white">
+              <div
+                className="relative aspect-[16/10] bg-white"
+                onTouchStart={(e) => {
+                  const t = e.touches[0];
+                  (e.currentTarget as any)._swipeX = t.clientX;
+                  (e.currentTarget as any)._swipeY = t.clientY;
+                  (e.currentTarget as any)._swipeTime = Date.now();
+                }}
+                onTouchEnd={(e) => {
+                  const startX = (e.currentTarget as any)._swipeX;
+                  const startY = (e.currentTarget as any)._swipeY;
+                  const startTime = (e.currentTarget as any)._swipeTime || 0;
+                  const dt = Date.now() - startTime;
+                  const t = e.changedTouches[0];
+                  const dx = t.clientX - startX;
+                  const dy = Math.abs(t.clientY - startY);
+                  const horizontal = Math.abs(dx) > 40 && dy < 60; // threshold & guard vertical scroll
+                  if (horizontal && dt < 800) {
+                    changeIndex(p.folder, dx < 0 ? 1 : -1);
+                  }
+                }}
+                onPointerDown={(e) => {
+                  if (e.pointerType === "mouse") return;
+                  (e.currentTarget as any)._swipeX = e.clientX;
+                  (e.currentTarget as any)._swipeY = e.clientY;
+                  (e.currentTarget as any)._swipeTime = Date.now();
+                }}
+                onPointerUp={(e) => {
+                  if (e.pointerType === "mouse") return;
+                  const startX = (e.currentTarget as any)._swipeX;
+                  const startY = (e.currentTarget as any)._swipeY;
+                  const startTime = (e.currentTarget as any)._swipeTime || 0;
+                  const dt = Date.now() - startTime;
+                  const dx = e.clientX - startX;
+                  const dy = Math.abs(e.clientY - startY);
+                  const horizontal = Math.abs(dx) > 40 && dy < 60;
+                  if (horizontal && dt < 800) {
+                    changeIndex(p.folder, dx < 0 ? 1 : -1);
+                  }
+                }}
+              >
                 <Image
                   src={current}
                   alt={p.title}
@@ -102,14 +142,14 @@ export default function ProjectsPage() {
                   <>
                     <button
                       onClick={() => changeIndex(p.folder, -1)}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/85 hover:bg-white text-[var(--brand-blue)] shadow opacity-0 group-hover:opacity-100 transition"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/85 hover:bg-white text-[var(--brand-blue)] shadow opacity-100 md:opacity-0 md:group-hover:opacity-100 transition"
                       aria-label="Previous image"
                     >
                       ‹
                     </button>
                     <button
                       onClick={() => changeIndex(p.folder, 1)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/85 hover:bg-white text-[var(--brand-blue)] shadow opacity-0 group-hover:opacity-100 transition"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/85 hover:bg-white text-[var(--brand-blue)] shadow opacity-100 md:opacity-0 md:group-hover:opacity-100 transition"
                       aria-label="Next image"
                     >
                       ›

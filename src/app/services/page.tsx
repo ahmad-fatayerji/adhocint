@@ -54,7 +54,7 @@ export default function ServicesPage() {
       <div className="container mx-auto px-4 max-w-6xl space-y-10">
         <header className="max-w-3xl">
           <h1 className="hero-title font-bold text-[var(--brand-blue)] text-balance">
-            Services Scope
+            Services
           </h1>
         </header>
         <Card>

@@ -1,19 +1,19 @@
 [
   {
-    "title": "Marjayoun Governmental Hospital Upgrades",
+    "title": "Marjayoun Governmental Hospital",
     "client": "ICRC",
     "year": 2024,
-    "description": "Rehabilitation of morgue, warehouse and oxygen systems (infrastructure renewal and service continuity).",
+    "description": "Rehabilitation of morgue, warehouse and oxygen Tank at Marjayoun Governmental Hospital",
     "folder": "2024-ICRC MGH",
     "cover": "/projects/2024-ICRC MGH/cover.JPG"
   },
   {
-    "title": "RHUH Training Center Refit",
+    "title": "Training Center at RHUH",
     "client": "ICRC",
     "year": 2024,
-    "description": "Spatial reconfiguration, LV distribution upgrades and lighting modernization at Rafik Hariri University Hospital training center.",
+    "description": "Training Center Refit at Rafik Hariri University Hospital.",
     "folder": "2024-ICRC RHUH Training",
-    "cover": "/projects/2024-ICRC RHUH Training/cover.JPG"
+    "cover": "/projects/2024-ICRC RHUH Training/cover2.JPG"
   },
   {
     "title": "RHUH Shelter Construction",
@@ -24,23 +24,23 @@
     "cover": "/projects/2024-ICRC Shelter/cover.JPG"
   },
   {
-    "title": "Steel Hangars – Hamat Airbase Phase",
+    "title": "Helicopter Steel Hangars – Lebarmy Hamat Airbase Phase",
     "client": "Lebanese Army",
     "year": 2024,
-    "description": "New helicopter hangar structures and associated ancillary works (multi-phase).",
+    "description": "Construction of three new helicopter hangars at Hamat Airbase for the Lebanese Army, 68000 kg",
     "folder": "2024-Lebarmy Hamat",
     "cover": "/projects/2024-Lebarmy Hamat/cover.JPG"
   },
   {
-    "title": "ICRC RHUH Fire Doors Replacement",
+    "title": "Rehabilitation of ER Doors",
     "client": "ICRC",
     "year": 2023,
-    "description": "Replacement and certification of fire-rated door assemblies at RHUH to improve compartmentation.",
+    "description": "Rehabilitation of Rafik Hariri University Hospital’s Emergency department doors by removing the old veneer, stainless steel, ironmongery, and replace them with new heavy duty and similar ones.",
     "folder": "2023-ICRC RHUH Doors",
     "cover": "/projects/2023-ICRC RHUH Doors/cover.JPG"
   },
   {
-    "title": "Emile Helou Forensic Lab Renovation",
+    "title": "Emile Helou Police Station ISF Forensic LAB Renovation – Beirut - Lebanon",
     "client": "ICRC",
     "year": 2022,
     "description": "Structural & fit-out renovation including mezzanine steel platform for police forensic laboratory modernization.",
@@ -48,7 +48,7 @@
     "cover": "/projects/2022-ICRC-Emile Helou/cover.JPG"
   },
   {
-    "title": "US Embassy Hotel Bathrooms Rehab",
+    "title": "Rehabilitation of Hotel Bathrooms inside the US Embassy Premises – Awkar - Beirut",
     "client": "US EMBASSY",
     "year": 2021,
     "description": "Comprehensive bathroom infrastructure and finish upgrades within secure compound facilities.",
@@ -56,82 +56,82 @@
     "cover": "/projects/2021-BRASS Bathrooms/cover.JPG"
   },
   {
-    "title": "North Basketball Court Rehabilitation",
+    "title": "North Basketball Court Rehabilitation-PRP Program- North Lebanon",
     "client": "ICRC",
     "year": 2021,
-    "description": "Demolition and reconstruction of regulation-compliant basketball court (PRP program).",
+    "description": "Demolishing and Re-Construction of a Basketball Court at the Forum of The Handicapped as per International Standards funded by the ICRC",
     "folder": "2021-ICRC North Basketball Court",
     "cover": "/projects/2021-ICRC North Basketball Court/cover.JPG"
   },
   {
-    "title": "Hotel Monroe Isolation Ward Conversion",
+    "title": "Hotel Monroe Aluminum Doors and Window Rehabilitation",
     "client": "Lebanese Army",
     "year": 2020,
-    "description": "Rapid conversion to controlled infection isolation ward (Sahet al Abed).",
+    "description": "Complete Rehabilitation of Doors and Windows following the Beirut Port Explosion",
     "folder": "2020-Lebarmy Monroe",
     "cover": "/projects/2020-Lebarmy Monroe/cover.JPG"
   },
   {
-    "title": "Baabdat Hills Residential Works",
+    "title": "Baabdat Hills Villa",
     "client": "Private",
     "year": 2020,
-    "description": "Finishing and infrastructure works across hillside residential development phases.",
+    "description": "High end finishing works of a core & shell duplex villa in Baabdat.",
     "folder": "2020-Baabdat Hills",
     "cover": "/projects/2020-Baabdat Hills/cover.JPG"
   },
   {
-    "title": "EST Relocation Facilities Fit-Out",
+    "title": "Relocation of an Engagement Skills Training Simulator at Hamat Airbase – North Lebanon.",
     "client": "Lebanese Army",
     "year": 2019,
-    "description": "Mechanical, electrical and architectural works for EST unit relocation.",
+    "description": "Earth works, Civil works, dismantling and reassembly of an EST shooting simulator within Hamat Airbase",
     "folder": "2019-Lebarmy EST Relocation",
     "cover": "/projects/2019-Lebarmy EST Relocation/cover.jpg"
   },
   {
-    "title": "MOD CR Building Refurbishment",
+    "title": "Construction of New Cold Room",
     "client": "Lebanese Army",
     "year": 2018,
-    "description": "Selective demolition, structural repairs and interior refurbishment (MOD CR).",
+    "description": "Supply and install a new cold room inside the Ministry of Defense's kitchen including insulated floor, walls, ceiling, refrigeration equipment, stainless steel stand and control panel.",
     "folder": "2018-Lebarmy MOD CR",
     "cover": "/projects/2018-Lebarmy MOD CR/cover.JPG"
   },
   {
-    "title": "Riak Facility Upgrade",
+    "title": "Structural Rehabilitation works for the Ammunition Building in Riak Airbase – Bekaa Lebanon",
     "client": "Lebanese Army",
     "year": 2018,
-    "description": "Site works, building services upgrades and architectural finishes (Riak site).",
+    "description": "Rehabilitation works pertaining to existing footings, columns and drop beams that were built by the French army in 1940’s and installation of new tie beams",
     "folder": "2018-Lebarmy Riak",
     "cover": "/projects/2018-Lebarmy Riak/cover.JPG"
   },
   {
-    "title": "Batroun Barracks Refurbishment",
+    "title": "10 Fuel Tanks Network",
     "client": "Lebanese Army",
     "year": 2018,
-    "description": "Barracks interior and services refurbishment in Batroun sector.",
+    "description": "Installation of new filling, vacuum and vent lines for ten fuel tanks in Batroun including civil works",
     "folder": "2018- Lebarmy Batroun",
     "cover": "/projects/2018- Lebarmy Batroun/cover.JPG"
   },
   {
-    "title": "Baabda Justice Palace Works",
+    "title": "Rehabilitation of Baabda Justice Palace Retention Center-Mount Lebanon",
     "client": "ICRC",
     "year": 2017,
-    "description": "Civil & MEP upgrades within Justice Palace for program functional improvements.",
+    "description": "Rehabilitation of steel doors, paint, water network, Sewage Pumps, HVAC and construction of new room in Baabda JP Retention Center",
     "folder": "2017-ICRC Baabda JP",
     "cover": "/projects/2017-ICRC Baabda JP/cover.jpg"
   },
   {
-    "title": "Nini Hospital Operating Room Rehab",
+    "title": "Operation Theaters Vinyl Flooring at Nini Hospital-North Lebanon",
     "client": "Private Healthcare",
     "year": 2017,
-    "description": "Operating theatre interior finishes and building services rehabilitation.",
+    "description": "Removal of old vinyl floor and tiles, install new tiles and Viny Floor Medical grade that serve 5 Operation Theaters.",
     "folder": "2017-Nini OR",
     "cover": "/projects/2017-Nini OR/cover.JPG"
   },
   {
-    "title": "Gandour Industrial Facility Works",
+    "title": "Gandour Food Factory",
     "client": "Gandour",
     "year": 2017,
-    "description": "Selective industrial building upgrades and systems improvements.",
+    "description": "Miscellaneous rehabilitation/improvement works inside Gandour factor: waterproofing, epoxy flooring, sanitary, civil works",
     "folder": "Gandour",
     "cover": "/projects/Gandour/cover.jpg"
   }

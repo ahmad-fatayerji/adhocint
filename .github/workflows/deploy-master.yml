@@ -2,13 +2,14 @@ name: Deploy adhocint.com (PM2 + rsync)
 
 on:
   push:
-    branches: [master]
+    branches: [master] # change if your default branch differs
 
 concurrency: adhocint-deploy
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -26,13 +27,18 @@ jobs:
         run: |
           set -e
           mkdir -p out_standalone
+          # Next.js standalone server
           cp -r .next/standalone/* out_standalone/
+          # Ensure target .next exists, then copy static assets
           mkdir -p out_standalone/.next
           cp -r .next/static out_standalone/.next/static
+          # Optional public assets
           [ -d public ] && cp -r public out_standalone/public
+          # PM2 config + placeholder uploads (symlinked on server)
           cp ecosystem.config.js out_standalone/
           mkdir -p out_standalone/uploads
 
+      # Load deploy key safely (handles multiline keys)
       - name: Start ssh-agent and add key
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -41,7 +47,7 @@ jobs:
       - name: Add host key to known_hosts
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }} # optional
+          #SSH_PORT: ${{ secrets.SSH_PORT }} # optional
         run: |
           set -e
           HOST="$(printf '%s' "$SSH_HOST" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
@@ -57,7 +63,7 @@ jobs:
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PORT: ${{ secrets.SSH_PORT }} # optional
+          #SSH_PORT: ${{ secrets.SSH_PORT }} # optional
         run: |
           set -e
           HOST="$(printf '%s' "$SSH_HOST" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
@@ -72,20 +78,27 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # port: ${{ secrets.SSH_PORT }}
+          # port: ${{ secrets.SSH_PORT }}   # uncomment if you set SSH_PORT
+          script_stop: true
           script: |
             set -euo pipefail
+            # pass GITHUB_SHA from the runner into this shell
+            GITHUB_SHA="${GITHUB_SHA}"
+
             SITE=/var/www/adhocint.com
-            REL="$SITE/releases/${GITHUB_SHA}"
+            REL="$SITE/releases/$GITHUB_SHA"
             CUR="$SITE/current"
             SHARED="$SITE/shared"
 
+            # link persistent env & uploads into the new release
             [ -f "$SHARED/.env" ] && ln -sfn "$SHARED/.env" "$REL/.env"
             rm -rf "$REL/uploads"
             ln -sfn "$SHARED/uploads" "$REL/uploads"
 
+            # atomic switch
             ln -sfn "$REL" "$CUR"
 
+            # start once; then hot reload (zero downtime)
             if pm2 describe adhocint >/dev/null 2>&1; then
               pm2 reload adhocint --update-env
             else

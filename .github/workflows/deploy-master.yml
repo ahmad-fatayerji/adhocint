@@ -2,14 +2,13 @@ name: Deploy adhocint.com (PM2 + rsync)
 
 on:
   push:
-    branches: [master] # change if your default branch differs
+    branches: [master]
 
 concurrency: adhocint-deploy
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -27,46 +26,44 @@ jobs:
         run: |
           set -e
           mkdir -p out_standalone
-          # Next.js standalone server
           cp -r .next/standalone/* out_standalone/
-          # Ensure target .next exists, then copy static assets
           mkdir -p out_standalone/.next
           cp -r .next/static out_standalone/.next/static
-          # Optional public assets
-          if [ -d public ]; then cp -r public out_standalone/public; fi
-          # PM2 config + placeholder uploads (symlinked on server)
+          [ -d public ] && cp -r public out_standalone/public
           cp ecosystem.config.js out_standalone/
           mkdir -p out_standalone/uploads
 
-      - name: Rsync upload to server
+      - name: Start ssh-agent and add key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add host key to known_hosts
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }} #
-          SSH_USER: ${{ secrets.SSH_USER }} #
-          SSH_KEY: ${{ secrets.SSH_KEY }} #
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }} # optional
         run: |
           set -e
-
-          mkdir -p ~/.ssh
-          # Write key and strip CR to avoid "error in libcrypto"
-          printf "%s" "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-
-          # Sanitize host & handle custom port
           HOST="$(printf '%s' "$SSH_HOST" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
           if [ -n "${SSH_PORT:-}" ]; then
-            SSH_OPTS="-p ${SSH_PORT}"
             KN_HOST="[${HOST}]:${SSH_PORT}"
           else
-            SSH_OPTS=""
             KN_HOST="${HOST}"
           fi
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$KN_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-          # Accept host key on first contact
-          ssh -o StrictHostKeyChecking=accept-new $SSH_OPTS -i ~/.ssh/id_deploy "${SSH_USER}@${HOST}" echo connected
-
-          # Upload release
+      - name: Rsync upload to server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }} # optional
+        run: |
+          set -e
+          HOST="$(printf '%s' "$SSH_HOST" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+          [ -n "${SSH_PORT:-}" ] && SSH_OPTS="-p ${SSH_PORT}" || SSH_OPTS=""
           RSYNC_DEST="/var/www/adhocint.com/releases/${GITHUB_SHA}/"
-          rsync -az --delete -e "ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=accept-new $SSH_OPTS" \
+          rsync -az --delete -e "ssh -o StrictHostKeyChecking=accept-new $SSH_OPTS" \
             out_standalone/ "${SSH_USER}@${HOST}:${RSYNC_DEST}"
 
       - name: Activate release & PM2 reload (zero downtime)
@@ -74,8 +71,8 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          # port: ${{ secrets.SSH_PORT }}   # uncomment if you set SSH_PORT
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # port: ${{ secrets.SSH_PORT }}
           script: |
             set -euo pipefail
             SITE=/var/www/adhocint.com
@@ -83,15 +80,12 @@ jobs:
             CUR="$SITE/current"
             SHARED="$SITE/shared"
 
-            # Link persistent env & uploads into the new release
             [ -f "$SHARED/.env" ] && ln -sfn "$SHARED/.env" "$REL/.env"
             rm -rf "$REL/uploads"
             ln -sfn "$SHARED/uploads" "$REL/uploads"
 
-            # Atomic switch to new code
             ln -sfn "$REL" "$CUR"
 
-            # Start once; then hot reload for zero downtime
             if pm2 describe adhocint >/dev/null 2>&1; then
               pm2 reload adhocint --update-env
             else

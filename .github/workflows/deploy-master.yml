@@ -1,41 +1,53 @@
 name: Deploy adhocint.com (PM2 + rsync)
+
 on:
   push:
-    branches: [master]
+    branches: [master] # change if your default branch differs
 
 concurrency: adhocint-deploy
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
 
       - name: Install & build
+        env:
+          NODE_ENV: production
         run: |
           npm ci
           npm run build
 
       - name: Prepare standalone bundle
         run: |
+          set -e
           mkdir -p out_standalone
+          # copy Next.js standalone server
           cp -r .next/standalone/* out_standalone/
+          # ensure target .next exists, then copy static assets
+          mkdir -p out_standalone/.next
           cp -r .next/static out_standalone/.next/static
-          cp -r public out_standalone/public || true
+          # optional public assets
+          if [ -d public ]; then cp -r public out_standalone/public; fi
+          # pm2 config + placeholder uploads (will be symlinked on server)
           cp ecosystem.config.js out_standalone/
           mkdir -p out_standalone/uploads
 
-      # --- Native rsync over SSH  ---
+      # --- Native rsync over SSH (no third-party actions) ---
       - name: Rsync upload to server
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_KEY: ${{ secrets.SSH_KEY }}
         run: |
+          set -e
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
@@ -57,12 +69,15 @@ jobs:
             CUR="$SITE/current"
             SHARED="$SITE/shared"
 
+            # link persistent env & uploads into the new release
             [ -f "$SHARED/.env" ] && ln -sfn "$SHARED/.env" "$REL/.env"
             rm -rf "$REL/uploads"
             ln -sfn "$SHARED/uploads" "$REL/uploads"
 
+            # atomic switch to new release
             ln -sfn "$REL" "$CUR"
 
+            # start once; thereafter hot reload (zero downtime)
             if pm2 describe adhocint >/dev/null 2>&1; then
               pm2 reload adhocint --update-env
             else

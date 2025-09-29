@@ -20,17 +20,21 @@ jobs:
 
       - name: Install & build
         run: |
-          npm ci           
+          npm ci
           npm run build
 
       - name: Prepare standalone bundle
         run: |
           set -e
           mkdir -p out_standalone
+          # Next.js standalone server
           cp -r .next/standalone/* out_standalone/
+          # Ensure target .next exists, then copy static assets
           mkdir -p out_standalone/.next
           cp -r .next/static out_standalone/.next/static
+          # Optional public assets
           if [ -d public ]; then cp -r public out_standalone/public; fi
+          # PM2 config + placeholder uploads (symlinked on server)
           cp ecosystem.config.js out_standalone/
           mkdir -p out_standalone/uploads
 
@@ -39,14 +43,34 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
           set -e
+
+          # Write key safely
           mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          printf "%s" "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+          # Sanitize host & handle custom port
+          HOST="$(printf '%s' "$SSH_HOST" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+          if [ -n "${SSH_PORT:-}" ]; then
+            KN_HOST="[${HOST}]:${SSH_PORT}"
+            SSH_OPTS="-p ${SSH_PORT}"
+          else
+            KN_HOST="${HOST}"
+            SSH_OPTS=""
+          fi
+
+          # Trust host key (quietly)
+          ssh-keyscan -H "$KN_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          # Quick connectivity check
+          ssh -o StrictHostKeyChecking=yes -i ~/.ssh/id_deploy $SSH_OPTS "${SSH_USER}@${HOST}" "echo ok"
+
+          # Upload release
           RSYNC_DEST="/var/www/adhocint.com/releases/${GITHUB_SHA}/"
-          rsync -az --delete -e "ssh -i ~/.ssh/id_rsa" out_standalone/ "${SSH_USER}@${SSH_HOST}:${RSYNC_DEST}"
+          rsync -az --delete -e "ssh -i ~/.ssh/id_deploy $SSH_OPTS" out_standalone/ "${SSH_USER}@${HOST}:${RSYNC_DEST}"
 
       - name: Activate release & PM2 reload (zero downtime)
         uses: appleboy/ssh-action@v1.2.0
@@ -61,12 +85,15 @@ jobs:
             CUR="$SITE/current"
             SHARED="$SITE/shared"
 
+            # Link persistent env & uploads into the new release
             [ -f "$SHARED/.env" ] && ln -sfn "$SHARED/.env" "$REL/.env"
             rm -rf "$REL/uploads"
             ln -sfn "$SHARED/uploads" "$REL/uploads"
 
+            # Atomic switch to new code
             ln -sfn "$REL" "$CUR"
 
+            # Start once; then hot reload for zero downtime
             if pm2 describe adhocint >/dev/null 2>&1; then
               pm2 reload adhocint --update-env
             else

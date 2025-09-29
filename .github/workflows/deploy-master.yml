@@ -1,70 +1,71 @@
-name: Deploy Production (master)
-
+name: Deploy adhocint.com (PM2 + rsync)
 on:
   push:
-    branches: [ master ]
-  workflow_dispatch:
+    branches: [master]
 
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
+concurrency: adhocint-deploy
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 1
+          node-version: "20"
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Install & build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare standalone bundle
+        run: |
+          mkdir -p out_standalone
+          cp -r .next/standalone/* out_standalone/
+          cp -r .next/static out_standalone/.next/static
+          cp -r public out_standalone/public || true
+          cp ecosystem.config.js out_standalone/
+          mkdir -p out_standalone/uploads
+
+      # --- Native rsync over SSH  ---
+      - name: Rsync upload to server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+          RSYNC_DEST="/var/www/adhocint.com/releases/${GITHUB_SHA}/"
+          rsync -az --delete -e "ssh -i ~/.ssh/id_rsa" out_standalone/ "${SSH_USER}@${SSH_HOST}:${RSYNC_DEST}"
+
+      - name: Activate release & PM2 reload (zero downtime)
+        uses: appleboy/ssh-action@v1.2.0
         with:
-          node-version: 18
-          cache: 'npm'
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -euo pipefail
+            SITE=/var/www/adhocint.com
+            REL="$SITE/releases/${GITHUB_SHA}"
+            CUR="$SITE/current"
+            SHARED="$SITE/shared"
 
-      - name: Install dependencies
-        run: npm ci
+            [ -f "$SHARED/.env" ] && ln -sfn "$SHARED/.env" "$REL/.env"
+            rm -rf "$REL/uploads"
+            ln -sfn "$SHARED/uploads" "$REL/uploads"
 
-      - name: Build Next.js
-        run: npm run build
+            ln -sfn "$REL" "$CUR"
 
-      - name: Upload build to server (rsync, no tar)
-        env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          REMOTE_PATH: /var/www/adhocint.com
-        run: |
-          echo "$DEPLOY_SSH_KEY" > key.pem
-          chmod 600 key.pem
-          # ensure target dir exists
-          ssh -i key.pem -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p $REMOTE_PATH"
-          # sync build outputs + runtime files (exclude repo junk)
-          rsync -az --delete -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
-            --exclude .git --exclude node_modules \
-            .next package.json package-lock.json public next.config.* tsconfig.json \
-            $SERVER_USER@$SERVER_IP:$REMOTE_PATH/
-
-      - name: Deploy remotely (pm2 reload or start)
-        env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          REMOTE_PATH: /var/www/adhocint.com
-        run: |
-          echo "$DEPLOY_SSH_KEY" > key.pem
-          chmod 600 key.pem
-          ssh -i key.pem -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP <<EOF
-            set -e
-            cd "$REMOTE_PATH"
-            npm ci --omit=dev
-            pm2 describe adhocint >/dev/null 2>&1 && pm2 reload adhocint || pm2 start npm --name adhocint -- start
-            pm2 save
-          EOF
-
-      - name: Cleanup keys
-        if: always()
-        run: rm -f key.pem
+            if pm2 describe adhocint >/dev/null 2>&1; then
+              pm2 reload adhocint --update-env
+            else
+              pm2 start "$CUR/ecosystem.config.js"
+              pm2 save
+            fi

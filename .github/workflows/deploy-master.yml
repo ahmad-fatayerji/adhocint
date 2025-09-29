@@ -2,7 +2,7 @@ name: Deploy adhocint.com (PM2 + rsync)
 
 on:
   push:
-    branches: [master]
+    branches: [master] # change if your default branch differs
 
 concurrency: adhocint-deploy
 
@@ -40,32 +40,34 @@ jobs:
 
       - name: Rsync upload to server
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }} # e.g. 82.165.92.150
-          SSH_USER: ${{ secrets.SSH_USER }} # e.g. sky
-          SSH_KEY: ${{ secrets.SSH_KEY }} # full private key block
-          #SSH_PORT: ${{ secrets.SSH_PORT }} # optional; omit if using 22
+          SSH_HOST: ${{ secrets.SSH_HOST }} #
+          SSH_USER: ${{ secrets.SSH_USER }} #
+          SSH_KEY: ${{ secrets.SSH_KEY }} #
         run: |
           set -e
 
-          # Write key safely
           mkdir -p ~/.ssh
-          printf "%s" "$SSH_KEY" > ~/.ssh/id_deploy
+          # Write key and strip CR to avoid "error in libcrypto"
+          printf "%s" "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
 
           # Sanitize host & handle custom port
           HOST="$(printf '%s' "$SSH_HOST" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
           if [ -n "${SSH_PORT:-}" ]; then
             SSH_OPTS="-p ${SSH_PORT}"
+            KN_HOST="[${HOST}]:${SSH_PORT}"
           else
             SSH_OPTS=""
+            KN_HOST="${HOST}"
           fi
 
-          # Accept the host key on first connect (avoids "No ED25519 host key known" failure)
-          SSH_OPTS="$SSH_OPTS -o StrictHostKeyChecking=accept-new"
+          # Accept host key on first contact
+          ssh -o StrictHostKeyChecking=accept-new $SSH_OPTS -i ~/.ssh/id_deploy "${SSH_USER}@${HOST}" echo connected
 
           # Upload release
           RSYNC_DEST="/var/www/adhocint.com/releases/${GITHUB_SHA}/"
-          rsync -az --delete -e "ssh -i ~/.ssh/id_deploy $SSH_OPTS" out_standalone/ "${SSH_USER}@${HOST}:${RSYNC_DEST}"
+          rsync -az --delete -e "ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=accept-new $SSH_OPTS" \
+            out_standalone/ "${SSH_USER}@${HOST}:${RSYNC_DEST}"
 
       - name: Activate release & PM2 reload (zero downtime)
         uses: appleboy/ssh-action@v1.2.0
@@ -73,8 +75,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          # uncomment if you use a non-default SSH port:
-          # port: ${{ secrets.SSH_PORT }}
+          # port: ${{ secrets.SSH_PORT }}   # uncomment if you set SSH_PORT
           script: |
             set -euo pipefail
             SITE=/var/www/adhocint.com

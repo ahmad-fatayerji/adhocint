@@ -40,10 +40,10 @@ jobs:
 
       - name: Rsync upload to server
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_HOST: ${{ secrets.SSH_HOST }} # e.g. 82.165.92.150
+          SSH_USER: ${{ secrets.SSH_USER }} # e.g. sky
+          SSH_KEY: ${{ secrets.SSH_KEY }} # full private key block
+          #SSH_PORT: ${{ secrets.SSH_PORT }} # optional; omit if using 22
         run: |
           set -e
 
@@ -55,18 +55,13 @@ jobs:
           # Sanitize host & handle custom port
           HOST="$(printf '%s' "$SSH_HOST" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
           if [ -n "${SSH_PORT:-}" ]; then
-            KN_HOST="[${HOST}]:${SSH_PORT}"
             SSH_OPTS="-p ${SSH_PORT}"
           else
-            KN_HOST="${HOST}"
             SSH_OPTS=""
           fi
 
-          # Trust host key (quietly)
-          ssh-keyscan -H "$KN_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-
-          # Quick connectivity check
-          ssh -o StrictHostKeyChecking=yes -i ~/.ssh/id_deploy $SSH_OPTS "${SSH_USER}@${HOST}" "echo ok"
+          # Accept the host key on first connect (avoids "No ED25519 host key known" failure)
+          SSH_OPTS="$SSH_OPTS -o StrictHostKeyChecking=accept-new"
 
           # Upload release
           RSYNC_DEST="/var/www/adhocint.com/releases/${GITHUB_SHA}/"
@@ -78,6 +73,8 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          # uncomment if you use a non-default SSH port:
+          # port: ${{ secrets.SSH_PORT }}
           script: |
             set -euo pipefail
             SITE=/var/www/adhocint.com

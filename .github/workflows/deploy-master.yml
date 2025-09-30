@@ -30,13 +30,9 @@ jobs:
           set -e
           rm -rf out_standalone
           mkdir -p out_standalone/.next
-          # Next.js "standalone" output
           cp -r .next/standalone/* out_standalone/
-          # Static assets
           cp -r .next/static out_standalone/.next/static
-          # Public assets (if any)
           [ -d public ] && cp -r public out_standalone/public
-          # Version marker (helps verify live version)
           cp version.txt out_standalone/
 
       - name: Start ssh-agent
@@ -54,7 +50,7 @@ jobs:
           rsync -az --delete -e "ssh -o StrictHostKeyChecking=accept-new" \
             out_standalone/ "${SSH_USER}@${SSH_HOST}:${RSYNC_DEST}"
 
-      - name: Activate release + PM2 restart (and prune)
+      - name: Activate release + PM2 restart (no sourcing .env.local)
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -69,51 +65,41 @@ jobs:
             CUR="$SITE/current"
             SHARED="$SITE/shared"
 
-            # Require runtime env file on server
+            # runtime env must exist on server
             if [ ! -f "$SHARED/.env.local" ]; then
-              echo "❌ Missing $SHARED/.env.local on server."
-              echo "Create it with PORT=3001 (no quotes/spaces) and your secrets."
-              exit 1
+              echo "❌ Missing $SHARED/.env.local"; exit 1
             fi
 
-            # Link runtime env into this release (do NOT commit it to git)
+            # link env & optional uploads into this release
             ln -sfn "$SHARED/.env.local" "$REL/.env.local"
-
-            # Optional persistent uploads dir
             if [ -d "$SHARED/uploads" ]; then
-              rm -rf "$REL/uploads"
-              ln -sfn "$SHARED/uploads" "$REL/uploads"
+              rm -rf "$REL/uploads"; ln -sfn "$SHARED/uploads" "$REL/uploads"
             fi
 
-            # Sanity: entrypoint must exist (Next standalone)
-            if [ ! -f "$REL/server.js" ]; then
-              echo "❌ server.js not found in $REL. Release contents:"
-              ls -la "$REL"
-              exit 1
-            fi
+            # ensure entrypoint exists
+            [ -f "$REL/server.js" ] || { echo "❌ server.js not found in $REL"; ls -la "$REL"; exit 1; }
 
-            # Atomic switch to the new release
+            # switch atomically
             ln -sfn "$REL" "$CUR"
             echo "current -> $(readlink -f "$CUR")"
 
-            # Export env so PM2 inherits it (no dotenv at runtime needed)
-            set -a
-            . "$REL/.env.local"
-            set +a
-            : "${PORT:=3001}"
+            # get PORT without sourcing (defaults to 3001)
+            PORT=$(grep -E '^PORT=' "$CUR/.env.local" | tail -n1 | cut -d= -f2- || true)
+            [ -n "${PORT:-}" ] || PORT=3001
 
-            # Restart PM2 bound to CURRENT (simple & robust)
+            # restart pm2 bound to CURRENT; load dotenv at runtime
             pm2 delete adhocint || true
-            pm2 start "$CUR/server.js" --name adhocint --cwd "$CUR" --update-env
+            DOTENV_CONFIG_PATH="$CUR/.env.local" pm2 start "$CUR/server.js" \
+              --name adhocint --cwd "$CUR" --node-args="-r dotenv/config" --update-env
             pm2 save
 
-            # Quick local health check
+            # quick health check
             curl -sfI "http://127.0.0.1:${PORT}" >/dev/null || {
               echo "❌ Health check failed on :${PORT}"
               pm2 logs adhocint --lines 80
               exit 1
             }
 
-            # Keep only last 5 releases
+            # prune old releases (keep last 5)
             cd "$SITE/releases"
             ls -1t | tail -n +6 | xargs -r rm -rf

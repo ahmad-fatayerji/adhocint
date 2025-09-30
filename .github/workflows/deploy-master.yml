@@ -18,30 +18,26 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Install & build
+      - name: Install & build (Next standalone)
         run: |
           set -e
           npm ci
           npm run build
           echo "${GITHUB_SHA} $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > version.txt
-          # ensure dotenv exists in node_modules so we can bundle it
-          npm i dotenv --no-save
 
       - name: Prepare standalone bundle
         run: |
           set -e
           rm -rf out_standalone
-          mkdir -p out_standalone/.next out_standalone/node_modules
-          # Next.js standalone output (includes server.js entry)
+          mkdir -p out_standalone/.next
+          # Next standalone (contains server.js + minimal node_modules)
           cp -r .next/standalone/* out_standalone/
-          # Static assets
+          # Static assets used by standalone server
           cp -r .next/static out_standalone/.next/static
-          # Public assets (if any)
+          # Public assets (if you have any)
           [ -d public ] && cp -r public out_standalone/public
           # Version marker
           cp version.txt out_standalone/
-          # ---- add ONLY dotenv so -r dotenv/config works in the release ----
-          cp -r node_modules/dotenv out_standalone/node_modules/dotenv
 
       - name: Start ssh-agent
         uses: webfactory/ssh-agent@v0.9.0
@@ -58,7 +54,7 @@ jobs:
           rsync -az --delete -e "ssh -o StrictHostKeyChecking=accept-new" \
             out_standalone/ "${SSH_USER}@${SSH_HOST}:${RSYNC_DEST}"
 
-      - name: Activate release + PM2 restart (wait for port)
+      - name: Activate release + PM2 restart (node server.js) + wait + prune
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -66,55 +62,52 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
           script: |
-            set -euo pipefail
+            set -eo pipefail
 
             SITE=/var/www/adhocint.com
             REL="$SITE/releases/${{ github.sha }}"
             CUR="$SITE/current"
             SHARED="$SITE/shared"
 
-            # 1) runtime env must exist on server
-            if [ ! -f "$SHARED/.env.local" ]; then
-              echo "❌ Missing $SHARED/.env.local on server"
-              exit 1
-            fi
+            # 1) require runtime env (keep this ONLY on server)
+            [ -f "$SHARED/.env.local" ] || { echo "❌ $SHARED/.env.local missing"; exit 1; }
 
-            # 2) link env (and optional uploads) into THIS release
+            # 2) link .env.local (+ optional uploads) into THIS release
             ln -sfn "$SHARED/.env.local" "$REL/.env.local"
             if [ -d "$SHARED/uploads" ]; then
               rm -rf "$REL/uploads"
               ln -sfn "$SHARED/uploads" "$REL/uploads"
             fi
 
-            # 3) sanity: server.js must exist
+            # 3) sanity (standalone must ship these)
             [ -f "$REL/server.js" ] || { echo "❌ server.js not found in $REL"; ls -la "$REL"; exit 1; }
 
-            # 4) atomically switch CURRENT
+            # 4) switch current -> this release
             ln -sfn "$REL" "$CUR"
             echo "current -> $(readlink -f "$CUR")"
 
-            # 5) determine PORT without sourcing (spaces-safe)
-            PORT=$(grep -E '^PORT=' "$CUR/.env.local" | tail -n1 | cut -d= -f2- || true)
-            [ -n "${PORT:-}" ] || PORT=3001
+            # 5) load env safely (values must NOT contain spaces)
+            set -a
+            . "$CUR/.env.local" || true
+            set +a
+            : "${PORT:=3001}"
+            : "${HOST:=127.0.0.1}"
 
-            # 6) restart pm2 bound to CURRENT; load env via dotenv
+            # 6) restart pm2 using Node (NOT npm, NOT dotenv preload)
             pm2 delete adhocint || true
-            DOTENV_CONFIG_PATH="$CUR/.env.local" \
-            pm2 start "$CUR/server.js" \
-              --name adhocint \
-              --cwd "$CUR" \
-              --node-args="-r dotenv/config" \
-              --update-env
+            PORT="$PORT" HOST="$HOST" NODE_ENV=production \
+            pm2 start "$CUR/server.js" --name adhocint --cwd "$CUR" --update-env
             pm2 save
 
-            # 7) wait up to 45s for port, then probe HTTP
-            for i in $(seq 1 45); do
+            # 7) wait up to 60s for port, then probe HTTP
+            echo "⏳ Waiting for port :$PORT ..."
+            for i in $(seq 1 60); do
               ss -ltn | grep -q ":$PORT" && break
               sleep 1
             done
             ss -ltn | grep -q ":$PORT" || { echo "❌ Port :$PORT not open"; pm2 logs adhocint --lines 120; exit 1; }
             curl -sfI "http://127.0.0.1:${PORT}" >/dev/null || { echo "❌ HTTP probe failed"; pm2 logs adhocint --lines 120; exit 1; }
 
+            echo "✅ App UP on :$PORT"
             # 8) keep last 5 releases
-            cd "$SITE/releases"
-            ls -1t | tail -n +6 | xargs -r rm -rf
+            cd "$SITE/releases" && ls -1t | tail -n +6 | xargs -r rm -rf || true

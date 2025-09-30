@@ -24,13 +24,15 @@ jobs:
           npm ci
           npm run build
           echo "${GITHUB_SHA} $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > version.txt
+          # ensure dotenv exists in node_modules so we can bundle it
+          npm i dotenv --no-save
 
       - name: Prepare standalone bundle
         run: |
           set -e
           rm -rf out_standalone
-          mkdir -p out_standalone/.next
-          # Next.js standalone output (includes server.js)
+          mkdir -p out_standalone/.next out_standalone/node_modules
+          # Next.js standalone output (includes server.js entry)
           cp -r .next/standalone/* out_standalone/
           # Static assets
           cp -r .next/static out_standalone/.next/static
@@ -38,6 +40,8 @@ jobs:
           [ -d public ] && cp -r public out_standalone/public
           # Version marker
           cp version.txt out_standalone/
+          # ---- add ONLY dotenv so -r dotenv/config works in the release ----
+          cp -r node_modules/dotenv out_standalone/node_modules/dotenv
 
       - name: Start ssh-agent
         uses: webfactory/ssh-agent@v0.9.0
@@ -69,32 +73,31 @@ jobs:
             CUR="$SITE/current"
             SHARED="$SITE/shared"
 
-            # 1) Ensure runtime env exists on server
+            # 1) runtime env must exist on server
             if [ ! -f "$SHARED/.env.local" ]; then
-              echo "❌ Missing $SHARED/.env.local on server."
-              echo "Create it with PORT=3001 (and your secrets)."
+              echo "❌ Missing $SHARED/.env.local on server"
               exit 1
             fi
 
-            # 2) Link .env.local (and optional uploads) into THIS release
+            # 2) link env (and optional uploads) into THIS release
             ln -sfn "$SHARED/.env.local" "$REL/.env.local"
             if [ -d "$SHARED/uploads" ]; then
               rm -rf "$REL/uploads"
               ln -sfn "$SHARED/uploads" "$REL/uploads"
             fi
 
-            # 3) Sanity: server.js must exist in the release
+            # 3) sanity: server.js must exist
             [ -f "$REL/server.js" ] || { echo "❌ server.js not found in $REL"; ls -la "$REL"; exit 1; }
 
-            # 4) Atomic switch of CURRENT -> this release
+            # 4) atomically switch CURRENT
             ln -sfn "$REL" "$CUR"
             echo "current -> $(readlink -f "$CUR")"
 
-            # 5) Determine port WITHOUT sourcing (handles spaces in secrets)
+            # 5) determine PORT without sourcing (spaces-safe)
             PORT=$(grep -E '^PORT=' "$CUR/.env.local" | tail -n1 | cut -d= -f2- || true)
             [ -n "${PORT:-}" ] || PORT=3001
 
-            # 6) (Re)start via PM2; load env with dotenv at runtime
+            # 6) restart pm2 bound to CURRENT; load env via dotenv
             pm2 delete adhocint || true
             DOTENV_CONFIG_PATH="$CUR/.env.local" \
             pm2 start "$CUR/server.js" \
@@ -104,22 +107,14 @@ jobs:
               --update-env
             pm2 save
 
-            # 7) Wait for the port to open (max ~45s), then health check
+            # 7) wait up to 45s for port, then probe HTTP
             for i in $(seq 1 45); do
-              if ss -ltn | grep -q ":$PORT"; then
-                echo "✅ Port :$PORT is listening."
-                break
-              fi
+              ss -ltn | grep -q ":$PORT" && break
               sleep 1
             done
-            ss -ltn | grep -q ":$PORT" || { echo "❌ Port :$PORT not open after 45s"; pm2 logs adhocint --lines 120; exit 1; }
+            ss -ltn | grep -q ":$PORT" || { echo "❌ Port :$PORT not open"; pm2 logs adhocint --lines 120; exit 1; }
+            curl -sfI "http://127.0.0.1:${PORT}" >/dev/null || { echo "❌ HTTP probe failed"; pm2 logs adhocint --lines 120; exit 1; }
 
-            curl -sfI "http://127.0.0.1:${PORT}" >/dev/null || {
-              echo "❌ HTTP probe failed on :${PORT}"
-              pm2 logs adhocint --lines 120
-              exit 1
-            }
-
-            # 8) Keep last 5 releases
+            # 8) keep last 5 releases
             cd "$SITE/releases"
             ls -1t | tail -n +6 | xargs -r rm -rf

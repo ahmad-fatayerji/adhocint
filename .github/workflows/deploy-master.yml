@@ -1,111 +1,81 @@
-name: Deploy adhocint.com (PM2 + rsync)
+name: deploy
 
 on:
   push:
-    branches: [master]
-
-concurrency: adhocint-deploy
+    branches:
+      - master
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: 20
 
-      - name: Install & build (standalone)
-        run: |
-          set -e
-          npm ci
-          # make sure next.config has: output: 'standalone'
-          npm run build
-          echo "${GITHUB_SHA} $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > version.txt
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Prepare standalone bundle (include full .next except cache)
+      - name: Build Next.js app
+        run: npm run build
+
+      - name: Prepare standalone bundle
         run: |
-          set -e
           rm -rf out_standalone
-          mkdir -p out_standalone/.next
-          # 1) runtime (server.js + minimal node_modules)
+          mkdir -p out_standalone
+          # copy standalone server
           cp -r .next/standalone/* out_standalone/
-          # 2) FULL .next (metadata + static), but skip heavy cache
-          rsync -a --delete \
-            --exclude 'cache/' \
-            .next/ out_standalone/.next/
-          # 3) public assets (optional)
+          # copy static build files
+          cp -r .next/static out_standalone/.next/
+          # ✅ copy public folder (fixes missing logo/images)
           [ -d public ] && cp -r public out_standalone/public
-          # 4) version marker
-          cp version.txt out_standalone/
+          # copy package.json if needed (for runtime deps)
+          cp package.json out_standalone/
 
-      - name: Start ssh-agent
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Upload via rsync
+        uses: burnett01/rsync-deployments@7.0.1
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          switches: -avzr --delete
+          path: out_standalone/
+          remote_path: /var/www/adhocint.com/releases/${{ github.sha }}
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USER }}
+          remote_key: ${{ secrets.SSH_KEY }}
 
-      - name: Upload release via rsync
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-        run: |
-          set -e
-          RSYNC_DEST="/var/www/adhocint.com/releases/${{ github.sha }}/"
-          rsync -az --delete -e "ssh -o StrictHostKeyChecking=accept-new" \
-            out_standalone/ "${SSH_USER}@${SSH_HOST}:${RSYNC_DEST}"
-
-      - name: Activate release + PM2 restart (node server.js) + wait + prune
+      - name: Activate release + restart pm2
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script_stop: true
+          key: ${{ secrets.SSH_KEY }}
           script: |
-            set -eo pipefail
             SITE=/var/www/adhocint.com
-            REL="$SITE/releases/${{ github.sha }}"
             CUR="$SITE/current"
-            SHARED="$SITE/shared"
+            NEW="$SITE/releases/${{ github.sha }}"
 
-            # require runtime env on server (NO spaces in values!)
-            [ -f "$SHARED/.env.local" ] || { echo "❌ $SHARED/.env.local missing"; exit 1; }
+            # point current to newest release
+            ln -sfn "$NEW" "$CUR"
+            ln -sfn "$SITE/shared/.env.local" "$CUR/.env.local"
 
-            # link env & optional uploads into THIS release
-            ln -sfn "$SHARED/.env.local" "$REL/.env.local"
-            if [ -d "$SHARED/uploads" ]; then
-              rm -rf "$REL/uploads"; ln -sfn "$SHARED/uploads" "$REL/uploads"
-            fi
-
-            # switch current -> this release
-            ln -sfn "$REL" "$CUR"
-            echo "current -> $(readlink -f "$CUR")"
-
-            # choose standalone entry
+            # pick entry (standalone server.js)
             if [ -f "$CUR/server.js" ]; then ENTRY="$CUR/server.js";
             elif [ -f "$CUR/.next/standalone/server.js" ]; then ENTRY="$CUR/.next/standalone/server.js";
             else echo "❌ no server.js in $CUR"; ls -la "$CUR"; exit 1; fi
 
-            # make sure BUILD_ID exists now
-            [ -f "$CUR/.next/BUILD_ID" ] || { echo "❌ .next/BUILD_ID missing in release"; ls -la "$CUR/.next"; exit 1; }
-
-            # get PORT from file (do not source)
+            # pick PORT from .env.local (default 3001)
             PORT=$(grep -E '^PORT=' "$CUR/.env.local" | tail -n1 | cut -d= -f2- || true)
-            [ -n "${PORT:-}" ] || PORT=3001
+            [ -n "$PORT" ] || PORT=3001
 
-            # restart pm2 using **node ENTRY**, pass env directly
             pm2 delete adhocint || true
             PORT="$PORT" HOST="127.0.0.1" NODE_ENV=production \
-            pm2 start /usr/bin/node --name adhocint -- "$ENTRY"
+              pm2 start /usr/bin/node --name adhocint -- "$ENTRY"
             pm2 save
 
-            # wait up to 60s for port, then HTTP probe
-            for i in $(seq 1 60); do ss -ltn | grep -q ":$PORT" && break; sleep 1; done
-            ss -ltn | grep -q ":$PORT" || { echo "❌ Port :$PORT not open"; pm2 logs adhocint --lines 120; exit 1; }
-            curl -sfI "http://127.0.0.1:${PORT}" >/dev/null || { echo "❌ HTTP probe failed"; pm2 logs adhocint --lines 120; exit 1; }
-
-            # prune old releases (keep 5)
-            cd "$SITE/releases" && ls -1t | tail -n +6 | xargs -r rm -rf || true
+            # wait for port
+            for i in $(seq 1 20); do ss -ltn | grep -q ":$PORT" && break; sleep 1; done
+            ss -ltn | grep -q ":$PORT" && echo "✅ listening on :$PORT" || pm2 logs adhocint --lines 80

@@ -2,7 +2,7 @@ name: Deploy adhocint.com (PM2 + rsync)
 
 on:
   push:
-    branches: [master] # change if your default branch differs
+    branches: [master]
 
 concurrency: adhocint-deploy
 
@@ -38,39 +38,25 @@ jobs:
           cp ecosystem.config.js out_standalone/
           mkdir -p out_standalone/uploads
 
-      # Load deploy key safely (handles multiline keys)
       - name: Start ssh-agent and add key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Add host key to known_hosts
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          #SSH_PORT: ${{ secrets.SSH_PORT }} # optional
         run: |
-          set -e
-          HOST="$(printf '%s' "$SSH_HOST" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-          if [ -n "${SSH_PORT:-}" ]; then
-            KN_HOST="[${HOST}]:${SSH_PORT}"
-          else
-            KN_HOST="${HOST}"
-          fi
           mkdir -p ~/.ssh
-          ssh-keyscan -H "$KN_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Rsync upload to server
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
-          #SSH_PORT: ${{ secrets.SSH_PORT }} # optional
         run: |
           set -e
-          HOST="$(printf '%s' "$SSH_HOST" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-          [ -n "${SSH_PORT:-}" ] && SSH_OPTS="-p ${SSH_PORT}" || SSH_OPTS=""
-          RSYNC_DEST="/var/www/adhocint.com/releases/${GITHUB_SHA}/"
-          rsync -az --delete -e "ssh -o StrictHostKeyChecking=accept-new $SSH_OPTS" \
-            out_standalone/ "${SSH_USER}@${HOST}:${RSYNC_DEST}"
+          RSYNC_DEST="/var/www/adhocint.com/releases/${{ github.sha }}/"
+          rsync -az --delete -e "ssh -o StrictHostKeyChecking=accept-new" \
+            out_standalone/ "${SSH_USER}@${SSH_HOST}:${RSYNC_DEST}"
 
       - name: Activate release & PM2 reload (zero downtime)
         uses: appleboy/ssh-action@v1.2.0
@@ -78,19 +64,16 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # port: ${{ secrets.SSH_PORT }}   # uncomment if you set SSH_PORT
           script_stop: true
           script: |
             set -euo pipefail
-            # pass GITHUB_SHA from the runner into this shell
-            GITHUB_SHA="${GITHUB_SHA}"
 
             SITE=/var/www/adhocint.com
-            REL="$SITE/releases/$GITHUB_SHA"
+            REL="$SITE/releases/${{ github.sha }}"
             CUR="$SITE/current"
             SHARED="$SITE/shared"
 
-            # link persistent env & uploads into the new release
+            # link persistent env & uploads
             [ -f "$SHARED/.env" ] && ln -sfn "$SHARED/.env" "$REL/.env"
             rm -rf "$REL/uploads"
             ln -sfn "$SHARED/uploads" "$REL/uploads"

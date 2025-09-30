@@ -246,7 +246,7 @@ export default function ProjectsPage() {
             Selected References
           </h1>
           <p className="text-lg text-black/70 leading-relaxed mb-6">
-            Browse our references; each card lets you flip through that
+            Browse our references. Each card lets you flip through that
             project's gallery directly.
           </p>
         </header>

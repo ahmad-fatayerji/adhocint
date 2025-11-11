@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import PageTransition from "@/components/PageTransition";
 
 export const metadata: Metadata = {
   title: {
@@ -38,7 +39,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased bg-[var(--background)] text-[var(--foreground)]">
         <Navbar />
-        {children}
+        <PageTransition>{children}</PageTransition>
         <footer className="py-6 border-t border-black/10">
           <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
             <span className="text-center md:text-left">

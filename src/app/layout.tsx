@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import Script from "next/script";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
@@ -68,7 +69,9 @@ export default function RootLayout({
             </Script>
           </>
         )}
-        <AnalyticsTracker />
+        <Suspense fallback={null}>
+          <AnalyticsTracker />
+        </Suspense>
         <Navbar />
         <PageTransition>{children}</PageTransition>
         <footer className="py-6 border-t border-black/10">

@@ -3,6 +3,7 @@ import Image from "next/image";
 import Button from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { trackEvent } from "@/lib/analytics";
 
 export default function Home() {
   const [status, setStatus] = useState<
@@ -36,6 +37,10 @@ export default function Home() {
         throw new Error(data.error || "Failed");
       }
       setStatus("success");
+      trackEvent("contact_submit", {
+        subject: payload.subject || "(none)",
+        message_length: payload.message?.length || 0,
+      });
       form.reset();
       tRef.current = Date.now();
       setTimeout(() => setStatus("idle"), 5000);
@@ -44,6 +49,9 @@ export default function Home() {
       setError(err.message || "Error");
     }
   }
+
+  const logCtaClick = (label: string, section: string) =>
+    trackEvent("cta_click", { label, section });
   return (
     <main>
       {/* Hero */}
@@ -62,10 +70,17 @@ export default function Home() {
             </p>
             <div className="mt-6 flex gap-3">
               <a href="/projects">
-                <Button>View Projects</Button>
+                <Button onClick={() => logCtaClick("View Projects", "hero")}>
+                  View Projects
+                </Button>
               </a>
               <a href="#contact">
-                <Button variant="outline">Contact Us</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => logCtaClick("Contact", "hero")}
+                >
+                  Contact Us
+                </Button>
               </a>
             </div>
           </div>
@@ -140,7 +155,10 @@ export default function Home() {
         </div>
         <div className="container mx-auto px-4 mt-6 text-center">
           <a href="/services">
-            <Button className="px-8">
+            <Button
+              className="px-8"
+              onClick={() => logCtaClick("View Services", "about")}
+            >
               Learn more about the services we offer
             </Button>
           </a>

@@ -90,6 +90,8 @@ export default function ProjectsPage() {
           };
           const current = g.images[g.index];
           const dir = directions[p.folder] || 1;
+          const isHeroCover =
+            p.cover === "/projects/2024-ICRC RHUH Training/cover2.JPG";
           return (
             <div
               key={p.title}
@@ -176,7 +178,7 @@ export default function ProjectsPage() {
                       fill
                       sizes="(max-width:768px) 100vw, 33vw"
                       className="object-cover"
-                      priority={false}
+                      priority={isHeroCover}
                     />
                   </motion.div>
                 </AnimatePresence>

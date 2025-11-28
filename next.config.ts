@@ -6,8 +6,6 @@ const nextConfig: NextConfig = {
 
   reactStrictMode: true,
 
-  // Optional: enable SWC minification for smaller bundles
-  swcMinify: true,
 };
 
 export default nextConfig;

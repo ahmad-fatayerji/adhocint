@@ -1,7 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import PageTransition from "@/components/PageTransition";
+import AnalyticsTracker from "@/components/AnalyticsTracker";
+import CookieBanner from "@/components/CookieBanner";
+import { GA_MEASUREMENT_ID, hasMeasurementId } from "@/lib/analytics";
 
 export const metadata: Metadata = {
   title: {
@@ -27,6 +31,9 @@ export const metadata: Metadata = {
     shortcut: "/web-app-manifest-192x192.png",
   },
   manifest: "/site.webmanifest",
+};
+
+export const viewport: Viewport = {
   themeColor: "#3960AD",
 };
 
@@ -38,6 +45,30 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased bg-[var(--background)] text-[var(--foreground)]">
+        {hasMeasurementId && (
+          <>
+            <Script
+              id="ga-loader"
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('consent', 'default', {
+                  ad_storage: 'denied',
+                  analytics_storage: 'denied'
+                });
+                gtag('config', '${GA_MEASUREMENT_ID}', {
+                  send_page_view: false
+                });
+              `}
+            </Script>
+          </>
+        )}
+        <AnalyticsTracker />
         <Navbar />
         <PageTransition>{children}</PageTransition>
         <footer className="py-6 border-t border-black/10">
@@ -65,6 +96,7 @@ export default function RootLayout({
             </div>
           </div>
         </footer>
+        <CookieBanner />
       </body>
     </html>
   );

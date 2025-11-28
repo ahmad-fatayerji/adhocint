@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import PageTransition from "@/components/PageTransition";
@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     shortcut: "/web-app-manifest-192x192.png",
   },
   manifest: "/site.webmanifest",
+};
+
+export const viewport: Viewport = {
   themeColor: "#3960AD",
 };
 

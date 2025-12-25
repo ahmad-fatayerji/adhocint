@@ -4,13 +4,10 @@ Description=adhocint minio
 [Container]
 Image=minio/minio:latest
 ContainerName=adhocint-minio
-EnvironmentFile=/opt/adhocint/shared/.env.production
+EnvFile=/opt/adhocint/shared/.env.production
 Volume=adhocint-minio-data:/data
 Network=adhocint
-Exec=server /data --console-address ":9001"
-[Restart=on-failure]
-[StandardOutput=journal]
-[StandardError=journal]
+Command=server /data --console-address ":9001"
 
 [Install]
 WantedBy=default.target

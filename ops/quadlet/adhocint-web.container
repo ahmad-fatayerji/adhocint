@@ -6,13 +6,10 @@ Requires=adhocint-db.service adhocint-minio.service
 [Container]
 Image=localhost/adhocint-web:latest
 ContainerName=adhocint-web
-EnvironmentFile=/opt/adhocint/shared/.env.production
+EnvFile=/opt/adhocint/shared/.env.production
 Environment=HOSTNAME=0.0.0.0
 PublishPort=127.0.0.1:3001:3001
 Network=adhocint
-[Restart=on-failure]
-[StandardOutput=journal]
-[StandardError=journal]
 
 [Install]
 WantedBy=default.target

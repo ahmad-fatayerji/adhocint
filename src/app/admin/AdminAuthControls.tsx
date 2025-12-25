@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "@/components/ui/button";
 
 export default function AdminAuthControls({
@@ -33,6 +33,18 @@ export default function AdminAuthControls({
   }
 
   if (!isLoggedIn) {
+    // Hide the "Login" link when we're already on the login page to avoid
+    // showing a redundant link while the user is in the process of logging in.
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+    if (
+      mounted &&
+      typeof window !== "undefined" &&
+      window.location.pathname === "/admin/login"
+    ) {
+      return null;
+    }
+
     return (
       <Link
         href="/admin/login"

@@ -7,6 +7,7 @@ ContainerName=adhocint-db
 EnvFile=/opt/adhocint/shared/.env.production
 Volume=adhocint-db-data:/var/lib/postgresql/data
 Network=adhocint
+Image=docker.io/library/postgres:16-alpine
 
 [Install]
 WantedBy=default.target

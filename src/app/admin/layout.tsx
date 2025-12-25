@@ -45,6 +45,9 @@ async function AdminNav({
   sessionPromise: ReturnType<typeof getAdminSession>;
 }) {
   const session = await sessionPromise;
+  // Hide admin navigation when there's no session (e.g. on the login page)
+  if (!session) return null;
+
   const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
 
   return (

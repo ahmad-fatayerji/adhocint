@@ -4,6 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
+  export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+fi
+
 ENV_FILE="${ENV_FILE:-.env.production}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -27,7 +31,7 @@ podman exec -T adhocint-db pg_dump -U "${POSTGRES_USER:?}" -d "${POSTGRES_DB:?}"
 echo "==> Backing up MinIO bucket '$MINIO_BUCKET' to $OUT_DIR/minio/"
 mkdir -p "$OUT_DIR/minio"
 
-# Use mc in the compose network (no host port assumptions)
+# Use mc in the podman network (no host port assumptions)
 podman run --rm -T --network adhocint --env-file "$ENV_FILE" \
   -v "$OUT_DIR/minio:/backup" \
   minio/mc:latest sh -lc '

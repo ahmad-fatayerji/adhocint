@@ -8,5 +8,5 @@ Image=localhost/adhocint-web:latest
 ContainerName=adhocint-web
 EnvFile=/opt/adhocint/shared/.env.production
 Environment=HOSTNAME=0.0.0.0
-PublishPort=3001:3001
+PublishPort=127.0.0.1:3001:3001
 Network=adhocint

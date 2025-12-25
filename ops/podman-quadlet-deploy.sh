@@ -6,6 +6,10 @@ ENV_FILE="${ENV_FILE:-$APP_DIR/shared/.env.production}"
 QUADLET_DIR="${QUADLET_DIR:-$HOME/.config/containers/systemd}"
 NETWORK_NAME="${PODMAN_NETWORK:-adhocint}"
 
+if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
+  export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+fi
+
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing env file: $ENV_FILE" >&2
   exit 1

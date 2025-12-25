@@ -1,0 +1,107 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+enum AdminRole {
+    ADMIN
+    SUPER_ADMIN
+}
+
+model AdminUser {
+    id           String    @id @default(cuid())
+    email        String    @unique
+    passwordHash String
+    role         AdminRole @default(ADMIN)
+    isActive     Boolean   @default(true)
+    mfaEnabled   Boolean   @default(true)
+    createdAt    DateTime  @default(now())
+    updatedAt    DateTime  @updatedAt
+    lastLoginAt  DateTime?
+
+    sessions AdminSession[]
+    otps     EmailOtp[]
+
+    @@index([email])
+}
+
+model AdminSession {
+    id         String    @id @default(cuid())
+    userId     String
+    tokenHash  String    @unique
+    createdAt  DateTime  @default(now())
+    expiresAt  DateTime
+    revokedAt  DateTime?
+    lastSeenAt DateTime?
+    ip         String?
+    userAgent  String?
+
+    user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId, expiresAt])
+}
+
+model EmailOtp {
+    id           String    @id @default(cuid())
+    userId       String
+    purpose      String
+    otpHash      String
+    createdAt    DateTime  @default(now())
+    expiresAt    DateTime
+    consumedAt   DateTime?
+    attemptCount Int       @default(0)
+    maxAttempts  Int       @default(5)
+    sendCount    Int       @default(1)
+    lastSentAt   DateTime  @default(now())
+    requestIp    String?
+    userAgent    String?
+
+    user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId, purpose, expiresAt])
+}
+
+model LoginRateLimit {
+    key          String    @id
+    windowStart  DateTime
+    count        Int
+    blockedUntil DateTime?
+
+    @@index([blockedUntil])
+}
+
+model Project {
+    id          String   @id @default(cuid())
+    slug        String   @unique
+    title       String
+    location    String
+    year        Int
+    category    String
+    description String
+    published   Boolean  @default(true)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    images ProjectImage[]
+
+    @@index([published, year])
+}
+
+model ProjectImage {
+    id          String   @id @default(cuid())
+    projectId   String
+    objectKey   String
+    sortOrder   Int      @default(0)
+    isCover     Boolean  @default(false)
+    contentType String?
+    bytes       BigInt?
+    createdAt   DateTime @default(now())
+
+    project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    @@unique([projectId, objectKey])
+    @@index([projectId, sortOrder])
+}

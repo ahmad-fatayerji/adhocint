@@ -1,0 +1,87 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: adhocint
+      POSTGRES_PASSWORD: adhocint
+      POSTGRES_DB: adhocint
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio12345
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} &&
+       mc mb -p local/$${MINIO_BUCKET} || true"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio12345
+      MINIO_BUCKET: adhocint
+
+  migrate:
+    build:
+      context: .
+      target: builder
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://adhocint:adhocint@db:5432/adhocint
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_BUCKET: adhocint
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio12345
+    command: ["npx", "prisma", "migrate", "deploy"]
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+    env_file:
+      - .env.local
+    environment:
+      DISABLE_RATE_LIMITS: "true"
+      PORT: 3001
+      HOSTNAME: 0.0.0.0
+      DATABASE_URL: postgresql://adhocint:adhocint@db:5432/adhocint
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_BUCKET: adhocint
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio12345
+    ports:
+      - "3001:3001"
+
+volumes:
+  db-data:
+  minio-data:

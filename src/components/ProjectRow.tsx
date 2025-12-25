@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface ProjectRowProps {
@@ -52,13 +51,11 @@ export default function ProjectRow({
               transition={{ duration: 0.35 }}
               className="absolute inset-0 flex items-center justify-center"
             >
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={images[index]}
                 alt={title}
-                fill
-                sizes="190px"
-                className="object-cover"
-                priority={false}
+                className="w-full h-full object-cover"
               />
             </motion.div>
           </AnimatePresence>

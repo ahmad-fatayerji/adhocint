@@ -31,6 +31,7 @@ export default function VerifyForm({ email }: { email: string }) {
       }
 
       router.push("/admin");
+      router.refresh();
     } finally {
       setStatus("idle");
     }

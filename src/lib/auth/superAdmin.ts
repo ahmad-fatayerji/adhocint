@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { normalizeEmail } from "@/lib/auth/otp";
-import { Algorithm, hash } from "@node-rs/argon2";
+import { hash } from "@node-rs/argon2";
 
 type SuperAdminConfig =
   | { email: string; password: string }
@@ -31,7 +31,7 @@ export async function ensureSuperAdminForEmail(email: string) {
   if (email !== config.email) return { ok: true as const };
 
   const passwordHash = await hash(config.password, {
-    algorithm: Algorithm.Argon2id,
+    algorithm: 2, // Argon2id
   });
 
   await prisma.adminUser.upsert({

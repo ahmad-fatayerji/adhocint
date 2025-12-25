@@ -88,7 +88,7 @@ podman run --rm --network "$NETWORK_NAME" --env-file "$ENV_FILE" \
 
 echo "==> Ensuring MinIO bucket"
 podman run --rm --network "$NETWORK_NAME" --env-file "$ENV_FILE" \
-  minio/mc:latest sh -lc '
+  docker.io/minio/mc:latest sh -lc '
     set -e
     mc alias set local http://adhocint-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
     mc mb -p "local/$MINIO_BUCKET" || true

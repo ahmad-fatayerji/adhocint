@@ -162,5 +162,14 @@ export async function POST(req: Request) {
         );
     }
 
+    // Successful send -> clear rate limit counters for this ip and email
+    try {
+        await prisma.loginRateLimit.deleteMany({
+            where: { key: { in: [`ip:${ip}:admin_login`, `email:${email}:admin_login`] } },
+        });
+    } catch {
+        // ignore errors clearing rate limits
+    }
+
     return NextResponse.json({ ok: true }, { status: 200 });
 }

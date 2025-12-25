@@ -47,7 +47,7 @@ cat "$DB_DUMP" | podman exec -T adhocint-db pg_restore -U "${POSTGRES_USER:?}" -
 echo "==> Restoring MinIO bucket '$MINIO_BUCKET' from $MINIO_DIR"
 podman run --rm -T --network adhocint --env-file "$ENV_FILE" \
   -v "$BACKUP_DIR_IN/minio:/backup" \
-  minio/mc:latest sh -lc '
+  docker.io/minio/mc:latest sh -lc '
     set -e
     mc alias set local http://adhocint-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
     mc mirror --overwrite "/backup/$MINIO_BUCKET" "local/$MINIO_BUCKET"

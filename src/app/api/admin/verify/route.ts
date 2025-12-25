@@ -84,5 +84,14 @@ export async function POST(req: Request) {
 
     await createAdminSession(user.id);
 
+    // Clear verification rate limit on successful verify
+    try {
+        await prisma.loginRateLimit.deleteMany({
+            where: { key: { in: [`ip_email:${ip}:${email}:admin_verify`] } },
+        });
+    } catch {
+        // ignore
+    }
+
     return NextResponse.json({ ok: true }, { status: 200 });
 }

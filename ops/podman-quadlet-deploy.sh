@@ -117,12 +117,21 @@ podman run --rm --network "$NETWORK_NAME" --env-file "$ENV_FILE" \
   localhost/adhocint-migrate:latest npx prisma migrate deploy
 
 echo "==> Ensuring MinIO bucket"
+MINIO_ENDPOINT="$(grep -E '^MINIO_ENDPOINT=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+MINIO_ENDPOINT="${MINIO_ENDPOINT:-http://adhocint-minio:9000}"
+MINIO_ROOT_USER="$(grep -E '^MINIO_ROOT_USER=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+MINIO_ROOT_PASSWORD="$(grep -E '^MINIO_ROOT_PASSWORD=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+MINIO_BUCKET="$(grep -E '^MINIO_BUCKET=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+MC_CONFIG_DIR="${MC_CONFIG_DIR:-$APP_DIR/shared/.mc}"
+mkdir -p "$MC_CONFIG_DIR"
 podman run --rm --network "$NETWORK_NAME" --env-file "$ENV_FILE" \
-  docker.io/minio/mc:latest sh -lc '
-    set -e
-    mc alias set local http://adhocint-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
-    mc mb -p "local/$MINIO_BUCKET" || true
-  '
+  -v "$MC_CONFIG_DIR:/mc" \
+  docker.io/minio/mc:latest --config-dir /mc \
+  alias set local "$MINIO_ENDPOINT" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+podman run --rm --network "$NETWORK_NAME" --env-file "$ENV_FILE" \
+  -v "$MC_CONFIG_DIR:/mc" \
+  docker.io/minio/mc:latest --config-dir /mc \
+  mb -p "local/$MINIO_BUCKET" || true
 
 echo "==> Starting web"
 "${SYSTEMCTL[@]}" start adhocint-web.service

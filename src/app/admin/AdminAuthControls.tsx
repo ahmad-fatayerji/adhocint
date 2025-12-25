@@ -13,6 +13,9 @@ export default function AdminAuthControls({
   const router = useRouter();
   const [status, setStatus] = useState<"idle" | "loggingOut">("idle");
   const [error, setError] = useState<string>("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   async function logout() {
     if (status !== "idle") return;
@@ -38,8 +41,6 @@ export default function AdminAuthControls({
   if (!isLoggedIn) {
     // Hide the "Login" link when we're already on the login page to avoid
     // showing a redundant link while the user is in the process of logging in.
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
     if (
       mounted &&
       typeof window !== "undefined" &&

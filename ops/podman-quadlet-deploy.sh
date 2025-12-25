@@ -140,7 +140,11 @@ podman run --rm --network "$NETWORK_NAME" --env-file "$ENV_FILE" \
   mb -p "local/$MINIO_BUCKET" || true
 
 echo "==> Starting web"
-"${SYSTEMCTL[@]}" start adhocint-web.service
+if "${SYSTEMCTL[@]}" is-active --quiet adhocint-web.service; then
+  "${SYSTEMCTL[@]}" restart adhocint-web.service
+else
+  "${SYSTEMCTL[@]}" start adhocint-web.service
+fi
 
 echo "==> Health check"
 APP_PORT="$(grep -E '^APP_PORT=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"

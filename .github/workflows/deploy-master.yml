@@ -57,23 +57,8 @@ jobs:
             # Ensure shared env exists (written every deploy)
             mkdir -p "$SHARED"
             umask 077
-            if command -v python3 >/dev/null 2>&1; then
-              ENC_PG_PASS="$(python3 - <<'PY'
-            import os
-            import urllib.parse
-            print(urllib.parse.quote(os.environ["POSTGRES_PASSWORD"]))
-            PY
-            )"
-            else
-              ENC_PG_PASS="${POSTGRES_PASSWORD//@/%40}"
-            fi
-            MINIO_PORT="${MINIO_PORT:-9000}"
-            DATABASE_URL="postgresql://${POSTGRES_USER}:${ENC_PG_PASS}@adhocint-db:5432/${POSTGRES_DB}"
-            MINIO_ENDPOINT="http://adhocint-minio:${MINIO_PORT}"
-            MINIO_ACCESS_KEY="${MINIO_ROOT_USER}"
-            MINIO_SECRET_KEY="${MINIO_ROOT_PASSWORD}"
             cat > "$SHARED/.env.production" <<EOF
-            NEXT_PUBLIC_GA_MEASUREMENT_ID=${NEXT_PUBLIC_GA_MEASUREMENT_ID}      
+            NEXT_PUBLIC_GA_MEASUREMENT_ID=${NEXT_PUBLIC_GA_MEASUREMENT_ID}
             APP_PORT=${APP_PORT}
             PORT=${APP_PORT}
             AUTH_SESSION_SECRET=${AUTH_SESSION_SECRET}
@@ -89,15 +74,11 @@ jobs:
             POSTGRES_USER=${POSTGRES_USER}
             POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
             POSTGRES_DB=${POSTGRES_DB}
-            DATABASE_URL=${DATABASE_URL}
             MINIO_ROOT_USER=${MINIO_ROOT_USER}
             MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
             MINIO_BUCKET=${MINIO_BUCKET}
             MINIO_PORT=${MINIO_PORT}
             MINIO_CONSOLE_PORT=${MINIO_CONSOLE_PORT}
-            MINIO_ENDPOINT=${MINIO_ENDPOINT}
-            MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
-            MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
             SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL}
             SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD}
             EOF
@@ -110,31 +91,17 @@ jobs:
             # Ensure git can operate even if ownership changed at some point
             git config --global --add safe.directory "$APP_DIR" || true
 
-            SYSTEMD_SCOPE="${SYSTEMD_SCOPE:-auto}"
-            if [ "$SYSTEMD_SCOPE" = "auto" ]; then
-              if [ "$(id -u)" -eq 0 ]; then
-                SYSTEMD_SCOPE="system"
-              else
-                SYSTEMD_SCOPE="user"
-              fi
-            fi
-            if [ "$SYSTEMD_SCOPE" = "user" ]; then
-              export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-              export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
-              QUADLET_DIR="$HOME/.config/containers/systemd"
-              SYSTEMCTL=(systemctl --user)
-            else
-              QUADLET_DIR="/etc/containers/systemd"
-              SYSTEMCTL=(systemctl)
-            fi
+            # Ensure user systemd bus is reachable in non-interactive SSH
+            export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+            export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
 
-            # Ensure quadlet units are installed where systemd reads them
-            mkdir -p "$QUADLET_DIR"
-            cp -f ops/quadlet/*.container "$QUADLET_DIR/" || true
+            # Ensure quadlet units are installed where systemd-user reads them
+            mkdir -p "$HOME/.config/containers/systemd"
+            cp -f ops/quadlet/*.container "$HOME/.config/containers/systemd/" || true
 
             # Run deployment (pull, build, migrations, etc.)
-            SYSTEMD_SCOPE="$SYSTEMD_SCOPE" GIT_PULL=1 ops/podman-quadlet-deploy.sh
+            GIT_PULL=1 ops/podman-quadlet-deploy.sh
 
             # Optional: show status at end (helps Actions logs)
-            "${SYSTEMCTL[@]}" daemon-reload || true
-            "${SYSTEMCTL[@]}" status adhocint-db adhocint-minio adhocint-web --no-pager || true
+            systemctl --user daemon-reload || true
+            systemctl --user status adhocint-db adhocint-minio adhocint-web --no-pager || true

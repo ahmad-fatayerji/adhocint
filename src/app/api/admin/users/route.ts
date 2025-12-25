@@ -66,6 +66,12 @@ export async function POST(req: Request) {
         isActive: true,
         mfaEnabled: true,
       },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true,
+      },
     });
 
     return NextResponse.json(

@@ -51,8 +51,14 @@ cd "$APP_DIR"
 # Optional: update code if this repo is git-cloned on the VPS
 if [[ "${GIT_PULL:-0}" == "1" ]]; then
   echo "==> Updating repo (git pull)"
+  script_before="$(cksum "$0" | awk '{print $1}')"
   git fetch --all --prune
   git reset --hard "${GIT_REF:-origin/master}"
+  script_after="$(cksum "$0" | awk '{print $1}')"
+  if [[ "$script_before" != "$script_after" ]]; then
+    echo "==> Re-executing updated deploy script"
+    exec env GIT_PULL=0 "$0" "$@"
+  fi
 fi
 
 mkdir -p "$QUADLET_DIR"

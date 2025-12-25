@@ -7,6 +7,9 @@ ContainerName=adhocint-db
 EnvironmentFile=/opt/adhocint/shared/.env.production
 Volume=adhocint-db-data:/var/lib/postgresql/data
 Network=adhocint
+[Restart=on-failure]
+[StandardOutput=journal]
+[StandardError=journal]
 
 [Install]
 WantedBy=default.target

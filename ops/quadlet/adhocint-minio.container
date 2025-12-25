@@ -8,6 +8,9 @@ EnvironmentFile=/opt/adhocint/shared/.env.production
 Volume=adhocint-minio-data:/data
 Network=adhocint
 Exec=server /data --console-address ":9001"
+[Restart=on-failure]
+[StandardOutput=journal]
+[StandardError=journal]
 
 [Install]
 WantedBy=default.target

@@ -10,6 +10,9 @@ EnvironmentFile=/opt/adhocint/shared/.env.production
 Environment=HOSTNAME=0.0.0.0
 PublishPort=127.0.0.1:3001:3001
 Network=adhocint
+[Restart=on-failure]
+[StandardOutput=journal]
+[StandardError=journal]
 
 [Install]
 WantedBy=default.target

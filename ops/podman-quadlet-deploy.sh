@@ -15,6 +15,12 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
+# Double-check env file before starting services
+if [[ ! -f "$ENV_FILE" ]]; then
+  echo "ERROR: Env file missing before service start: $ENV_FILE" >&2
+  exit 2
+fi
+
 cd "$APP_DIR"
 
 # Optional: update code if this repo is git-cloned on the VPS

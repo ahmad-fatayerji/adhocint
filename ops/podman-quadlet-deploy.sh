@@ -3,11 +3,36 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/adhocint}"
 ENV_FILE="${ENV_FILE:-$APP_DIR/shared/.env.production}"
-QUADLET_DIR="${QUADLET_DIR:-$HOME/.config/containers/systemd}"
 NETWORK_NAME="${PODMAN_NETWORK:-adhocint}"
+SYSTEMD_SCOPE="${SYSTEMD_SCOPE:-auto}"
 
-if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
-  export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+if [[ "$SYSTEMD_SCOPE" == "auto" ]]; then
+  if [[ "$(id -u)" -eq 0 ]]; then
+    SYSTEMD_SCOPE="system"
+  else
+    SYSTEMD_SCOPE="user"
+  fi
+fi
+
+if [[ "$SYSTEMD_SCOPE" == "system" && "$(id -u)" -ne 0 ]]; then
+  echo "ERROR: SYSTEMD_SCOPE=system requires root privileges." >&2
+  exit 1
+fi
+
+if [[ "$SYSTEMD_SCOPE" == "user" ]]; then
+  if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
+    export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+  fi
+  if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+  fi
+  QUADLET_DIR="${QUADLET_DIR:-$HOME/.config/containers/systemd}"
+  SYSTEMCTL=(systemctl --user)
+  JOURNALCTL=(journalctl --user)
+else
+  QUADLET_DIR="${QUADLET_DIR:-/etc/containers/systemd}"
+  SYSTEMCTL=(systemctl)
+  JOURNALCTL=(journalctl)
 fi
 
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -41,26 +66,31 @@ echo "==> Building images"
 podman build -t localhost/adhocint-web:latest .
 podman build --target builder -t localhost/adhocint-migrate:latest .
 
-echo "==> Reloading systemd user units"
-systemctl --user daemon-reload
+echo "==> Reloading systemd ${SYSTEMD_SCOPE} units"
+if ! "${SYSTEMCTL[@]}" daemon-reload; then
+  if [[ "$SYSTEMD_SCOPE" == "user" ]]; then
+    echo "ERROR: systemctl --user failed. Ensure the user manager is running and DBUS_SESSION_BUS_ADDRESS/XDG_RUNTIME_DIR are set." >&2
+  fi
+  exit 1
+fi
 
 # Wait for quadlet generator to create service units
 sleep 2
 
 # Verify units exist before enabling
 echo "==> Available adhocint units:"
-systemctl --user list-unit-files 'adhocint-*' || true
+"${SYSTEMCTL[@]}" list-unit-files 'adhocint-*' || true
 
 echo "==> Starting database and minio services"
 start_unit() {
   unit="$1"
   echo "==> Starting $unit"
-  if ! systemctl --user start "$unit"; then
+  if ! "${SYSTEMCTL[@]}" start "$unit"; then
     echo "ERROR: $unit failed to start" >&2
-    echo "==> systemctl --user status $unit"
-    systemctl --user status "$unit" --no-pager || true
-    echo "==> journalctl --user -xeu $unit"
-    journalctl --user -xeu "$unit" --no-pager || true
+    echo "==> systemctl status $unit"
+    "${SYSTEMCTL[@]}" status "$unit" --no-pager || true
+    echo "==> journalctl -xeu $unit"
+    "${JOURNALCTL[@]}" -xeu "$unit" --no-pager || true
     # Try to show podman logs for the container with the same base name
     cname="${unit%%.*}"
     echo "==> podman logs for container: $cname"
@@ -95,7 +125,7 @@ podman run --rm --network "$NETWORK_NAME" --env-file "$ENV_FILE" \
   '
 
 echo "==> Starting web"
-systemctl --user start adhocint-web.service
+"${SYSTEMCTL[@]}" start adhocint-web.service
 
 echo "==> Health check"
 APP_PORT="$(grep -E '^APP_PORT=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"

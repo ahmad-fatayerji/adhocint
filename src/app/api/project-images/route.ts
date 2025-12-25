@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
-import { readdir } from "fs/promises";
-import path from "path";
+import { prisma } from "@/lib/prisma";
 
-const IMG_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".JPG", ".PNG", ".JPEG", ".WEBP"]);
+function normalizeSlug(slug: string) {
+    return slug
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+}
 
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
@@ -10,19 +17,25 @@ export async function GET(req: Request) {
     if (!folder) {
         return NextResponse.json({ error: "Missing folder param" }, { status: 400 });
     }
-    // Basic sanitization: forbid path traversal
-    if (folder.includes("..") || folder.startsWith("/")) {
-        return NextResponse.json({ error: "Invalid folder" }, { status: 400 });
+
+    const slug = normalizeSlug(folder);
+    const project = await prisma.project.findUnique({
+        where: { slug },
+        include: {
+            images: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+        },
+    });
+    if (!project) {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
-    try {
-        const abs = path.join(process.cwd(), "public", "projects", folder);
-        const entries = await readdir(abs, { withFileTypes: true });
-        const files = entries
-            .filter((d) => d.isFile() && IMG_EXT.has(path.extname(d.name)))
-            .map((d) => `/projects/${folder}/${d.name}`)
-            .sort((a, b) => a.localeCompare(b));
-        return NextResponse.json({ images: files });
-    } catch (e: any) {
-        return NextResponse.json({ error: "Folder not found" }, { status: 404 });
+
+    const imgs = project.images.slice();
+    const coverIdx = imgs.findIndex((x) => x.isCover);
+    if (coverIdx > 0) {
+        const [cover] = imgs.splice(coverIdx, 1);
+        imgs.unshift(cover);
     }
+
+    const images = imgs.map((img) => `/api/public/project-images/${img.id}`);
+    return NextResponse.json({ images }, { status: 200 });
 }

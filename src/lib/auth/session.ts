@@ -57,20 +57,29 @@ export async function getAdminSession() {
     const tokenHash = hmacSha256Hex(secret, token);
     const now = new Date();
 
-    const session = await prisma.adminSession.findUnique({
-        where: { tokenHash },
-        include: { user: true },
-    });
+    let session: any = null;
+    try {
+        session = await prisma.adminSession.findUnique({
+            where: { tokenHash },
+            include: { user: true },
+        });
+    } catch {
+        return null;
+    }
 
     if (!session) return null;
     if (session.revokedAt) return null;
     if (session.expiresAt <= now) return null;
     if (!session.user.isActive) return null;
 
-    await prisma.adminSession.update({
-        where: { id: session.id },
-        data: { lastSeenAt: now },
-    });
+    try {
+        await prisma.adminSession.update({
+            where: { id: session.id },
+            data: { lastSeenAt: now },
+        });
+    } catch {
+        // ignore
+    }
 
     return session;
 }
@@ -92,8 +101,12 @@ export async function revokeAdminSession() {
     if (!token || !secret) return;
 
     const tokenHash = hmacSha256Hex(secret, token);
-    await prisma.adminSession.updateMany({
-        where: { tokenHash, revokedAt: null },
-        data: { revokedAt: new Date() },
-    });
+    try {
+        await prisma.adminSession.updateMany({
+            where: { tokenHash, revokedAt: null },
+            data: { revokedAt: new Date() },
+        });
+    } catch {
+        // ignore
+    }
 }

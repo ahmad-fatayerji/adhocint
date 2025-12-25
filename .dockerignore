@@ -10,3 +10,4 @@ yarn-error.log
 .env
 .env.*
 README.md
+public/projects

@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface ProjectCardProps {
@@ -40,12 +39,11 @@ export function ProjectCard({
             transition={{ duration: 0.4, ease: "easeOut" }}
             className="absolute inset-0"
           >
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={images[index].src}
               alt={images[index].alt || title}
-              fill
-              sizes="(max-width:768px) 100vw, 33vw"
-              className="object-cover"
+              className="w-full h-full object-cover"
             />
           </motion.div>
         </AnimatePresence>

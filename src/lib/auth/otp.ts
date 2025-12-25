@@ -40,7 +40,27 @@ export async function issueOtp(opts: {
     const userAgent = h.get("user-agent") || undefined;
     const requestIp = await getClientIp();
 
-    // Invalidate previous active OTPs for this user+purpose
+    // Cooldown handling: if there's already an active (unconsumed + unexpired) OTP
+    // and it was sent recently, do NOT invalidate it. Let the user reuse it.
+    const activeRecent = await prisma.emailOtp.findFirst({
+        where: {
+            userId: opts.userId,
+            purpose: opts.purpose,
+            consumedAt: null,
+            expiresAt: { gt: now },
+        },
+        orderBy: { createdAt: "desc" },
+    });
+
+    if (
+        activeRecent?.lastSentAt &&
+        now.getTime() - activeRecent.lastSentAt.getTime() <
+        resendCooldownSeconds * 1000
+    ) {
+        return { sent: false as const, reason: "cooldown" as const };
+    }
+
+    // We are going to issue a new OTP now; invalidate previous active OTPs.
     await prisma.emailOtp.updateMany({
         where: {
             userId: opts.userId,
@@ -52,19 +72,6 @@ export async function issueOtp(opts: {
     });
 
     const otpRowId = randomToken(16);
-
-    const existingRecent = await prisma.emailOtp.findFirst({
-        where: { userId: opts.userId, purpose: opts.purpose },
-        orderBy: { createdAt: "desc" },
-    });
-
-    if (
-        existingRecent?.lastSentAt &&
-        now.getTime() - existingRecent.lastSentAt.getTime() <
-        resendCooldownSeconds * 1000
-    ) {
-        return { sent: false as const, reason: "cooldown" as const };
-    }
 
     const code = generateOtpCode();
     const pepper = getRequiredEnv("OTP_PEPPER");

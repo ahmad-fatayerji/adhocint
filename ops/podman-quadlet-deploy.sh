@@ -52,7 +52,25 @@ echo "==> Available adhocint units:"
 systemctl --user list-unit-files 'adhocint-*' || true
 
 echo "==> Starting database and minio services"
-systemctl --user start adhocint-db.service adhocint-minio.service
+start_unit() {
+  unit="$1"
+  echo "==> Starting $unit"
+  if ! systemctl --user start "$unit"; then
+    echo "ERROR: $unit failed to start" >&2
+    echo "==> systemctl --user status $unit"
+    systemctl --user status "$unit" --no-pager || true
+    echo "==> journalctl --user -xeu $unit"
+    journalctl --user -xeu "$unit" --no-pager || true
+    # Try to show podman logs for the container with the same base name
+    cname="${unit%%.*}"
+    echo "==> podman logs for container: $cname"
+    podman logs --tail=200 "$cname" || true
+    exit 1
+  fi
+}
+
+start_unit adhocint-db.service
+start_unit adhocint-minio.service
 
 echo "==> Waiting for Postgres"
 POSTGRES_USER="$(grep -E '^POSTGRES_USER=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"

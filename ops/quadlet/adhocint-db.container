@@ -2,7 +2,7 @@
 Description=adhocint postgres
 
 [Container]
-Image=postgres:16-alpine
+Image=docker.io/library/postgres:16-alpine
 ContainerName=adhocint-db
 EnvFile=/opt/adhocint/shared/.env.production
 Volume=adhocint-db-data:/var/lib/postgresql/data

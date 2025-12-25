@@ -3,6 +3,7 @@ name: Deploy adhocint.com (Podman Quadlet)
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
 concurrency: adhocint-deploy
 
@@ -43,8 +44,17 @@ jobs:
           envs: NEXT_PUBLIC_GA_MEASUREMENT_ID,APP_PORT,AUTH_SESSION_SECRET,OTP_PEPPER,ADMIN_SESSION_COOKIE,ADMIN_SESSION_TTL_DAYS,EMAIL_HOST,EMAIL_PORT,EMAIL_USER,EMAIL_PASS,EMAIL_FROM,CONTACT_TO,POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB,MINIO_ROOT_USER,MINIO_ROOT_PASSWORD,MINIO_BUCKET,MINIO_PORT,MINIO_CONSOLE_PORT,SUPER_ADMIN_EMAIL,SUPER_ADMIN_PASSWORD
           script: |
             set -euo pipefail
+
             APP_DIR=/opt/adhocint
             SHARED="$APP_DIR/shared"
+
+            # Ensure repo exists (bootstrap safety)
+            if [ ! -d "$APP_DIR/.git" ]; then
+              echo "ERROR: $APP_DIR is missing a git repo. Clone it once on the server."
+              exit 1
+            fi
+
+            # Ensure shared env exists (written every deploy)
             mkdir -p "$SHARED"
             umask 077
             cat > "$SHARED/.env.production" <<EOF
@@ -74,4 +84,24 @@ jobs:
             EOF
 
             cd "$APP_DIR"
+
+            # Make ops scripts executable (Windows/Git perms safety)
+            chmod +x ops/*.sh || true
+
+            # Ensure git can operate even if ownership changed at some point
+            git config --global --add safe.directory "$APP_DIR" || true
+
+            # Ensure user systemd bus is reachable in non-interactive SSH
+            export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+            export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+
+            # Ensure quadlet units are installed where systemd-user reads them
+            mkdir -p "$HOME/.config/containers/systemd"
+            cp -f ops/quadlet/*.container "$HOME/.config/containers/systemd/" || true
+
+            # Run deployment (pull, build, migrations, etc.)
             GIT_PULL=1 ops/podman-quadlet-deploy.sh
+
+            # Optional: show status at end (helps Actions logs)
+            systemctl --user daemon-reload || true
+            systemctl --user status adhocint-db adhocint-minio adhocint-web --no-pager || true

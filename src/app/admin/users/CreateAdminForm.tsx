@@ -28,6 +28,7 @@ export default function CreateAdminForm() {
     try {
       const res = await fetch("/api/admin/users", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
@@ -66,9 +67,7 @@ export default function CreateAdminForm() {
       />
 
       {error ? <div className="text-sm text-red-700">{error}</div> : null}
-      {success ? (
-        <div className="text-sm text-green-700">{success}</div>
-      ) : null}
+      {success ? <div className="text-sm text-green-700">{success}</div> : null}
 
       <Button disabled={status === "saving"}>
         {status === "saving" ? "Creating..." : "Create admin"}

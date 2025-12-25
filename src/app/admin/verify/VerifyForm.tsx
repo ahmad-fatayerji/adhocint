@@ -19,6 +19,7 @@ export default function VerifyForm({ email }: { email: string }) {
     try {
       const res = await fetch("/api/admin/verify", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),
       });

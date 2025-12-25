@@ -1,13 +1,9 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth/session";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CreateAdminForm from "./CreateAdminForm";
+import AdminRow from "./AdminRow";
 
 export default async function AdminUsersPage() {
   const session = await getAdminSession();
@@ -48,25 +44,12 @@ export default async function AdminUsersPage() {
               ) : (
                 <div className="divide-y divide-black/5">
                   {admins.map((admin) => (
-                    <div
-                      key={admin.id}
-                      className="py-3 flex items-center justify-between gap-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{admin.email}</div>
-                        <div className="text-xs text-black/60">
-                          {admin.role === "SUPER_ADMIN" ? "Super admin" : "Admin"}
-                        </div>
-                      </div>
-                      <div
-                        className={`text-xs px-2 py-1 rounded ${
-                          admin.isActive
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-200 text-gray-600"
-                        }`}
-                      >
-                        {admin.isActive ? "Active" : "Disabled"}
-                      </div>
+                    <div key={admin.id}>
+                      {/* AdminRow handles actions client-side */}
+                      <AdminRow
+                        admin={admin}
+                        isSelf={admin.id === session.user.id}
+                      />
                     </div>
                   ))}
                 </div>

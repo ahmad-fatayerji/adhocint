@@ -19,7 +19,10 @@ export default function AdminAuthControls({
     setStatus("loggingOut");
     setError("");
     try {
-      const res = await fetch("/api/admin/logout", { method: "POST" });
+      const res = await fetch("/api/admin/logout", {
+        method: "POST",
+        credentials: "same-origin",
+      });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.ok) {
         setError(data?.error || "Logout failed");

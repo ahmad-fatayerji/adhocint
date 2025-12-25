@@ -57,8 +57,23 @@ jobs:
             # Ensure shared env exists (written every deploy)
             mkdir -p "$SHARED"
             umask 077
+            if command -v python3 >/dev/null 2>&1; then
+              ENC_PG_PASS="$(python3 - <<'PY'
+import os
+import urllib.parse
+print(urllib.parse.quote(os.environ["POSTGRES_PASSWORD"]))
+PY
+)"
+            else
+              ENC_PG_PASS="${POSTGRES_PASSWORD//@/%40}"
+            fi
+            MINIO_PORT="${MINIO_PORT:-9000}"
+            DATABASE_URL="postgresql://${POSTGRES_USER}:${ENC_PG_PASS}@adhocint-db:5432/${POSTGRES_DB}"
+            MINIO_ENDPOINT="http://adhocint-minio:${MINIO_PORT}"
+            MINIO_ACCESS_KEY="${MINIO_ROOT_USER}"
+            MINIO_SECRET_KEY="${MINIO_ROOT_PASSWORD}"
             cat > "$SHARED/.env.production" <<EOF
-            NEXT_PUBLIC_GA_MEASUREMENT_ID=${NEXT_PUBLIC_GA_MEASUREMENT_ID}
+            NEXT_PUBLIC_GA_MEASUREMENT_ID=${NEXT_PUBLIC_GA_MEASUREMENT_ID}      
             APP_PORT=${APP_PORT}
             PORT=${APP_PORT}
             AUTH_SESSION_SECRET=${AUTH_SESSION_SECRET}
@@ -74,11 +89,15 @@ jobs:
             POSTGRES_USER=${POSTGRES_USER}
             POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
             POSTGRES_DB=${POSTGRES_DB}
+            DATABASE_URL=${DATABASE_URL}
             MINIO_ROOT_USER=${MINIO_ROOT_USER}
             MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
             MINIO_BUCKET=${MINIO_BUCKET}
             MINIO_PORT=${MINIO_PORT}
             MINIO_CONSOLE_PORT=${MINIO_CONSOLE_PORT}
+            MINIO_ENDPOINT=${MINIO_ENDPOINT}
+            MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+            MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
             SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL}
             SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD}
             EOF

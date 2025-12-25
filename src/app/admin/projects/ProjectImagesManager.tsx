@@ -26,6 +26,7 @@ export default function ProjectImagesManager({
   const [coverId, setCoverId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [visibleCount, setVisibleCount] = useState(30); // Show 30 images at a time
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Drag state stored in refs to avoid re-renders during drag
@@ -37,6 +38,13 @@ export default function ProjectImagesManager({
     dropIdx: null,
   });
   const gridRef = useRef<HTMLDivElement>(null);
+
+  const hasFileTransfer = (e: React.DragEvent) => {
+    const types = e.dataTransfer?.types
+      ? Array.from(e.dataTransfer.types)
+      : [];
+    return types.includes("Files") || (e.dataTransfer?.files?.length ?? 0) > 0;
+  };
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -91,7 +99,13 @@ export default function ProjectImagesManager({
         setError(data?.error || "Failed to save");
         return;
       }
-      await refresh();
+      setImages((prev) =>
+        prev.map((img, i) => ({
+          ...img,
+          sortOrder: i,
+          isCover: coverId ? img.id === coverId : false,
+        }))
+      );
     } finally {
       setSavingOrder(false);
     }
@@ -205,6 +219,7 @@ export default function ProjectImagesManager({
   }
 
   function handleDragOver(e: React.DragEvent, idx: number) {
+    if (hasFileTransfer(e)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
 
@@ -229,6 +244,12 @@ export default function ProjectImagesManager({
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
+    if (hasFileTransfer(e) && e.dataTransfer?.files?.length) {
+      setIsDraggingFiles(false);
+      dragState.current = { draggedIdx: null, dropIdx: null };
+      void onUploadFiles(e.dataTransfer.files);
+      return;
+    }
     const { draggedIdx, dropIdx } = dragState.current;
 
     if (draggedIdx === null || dropIdx === null || draggedIdx === dropIdx) {
@@ -242,6 +263,22 @@ export default function ProjectImagesManager({
       copy.splice(adjustedIdx, 0, item);
       return copy.map((x, i) => ({ ...x, sortOrder: i }));
     });
+  }
+
+  function handleGridDragOver(e: React.DragEvent) {
+    if (hasFileTransfer(e)) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      if (!isDraggingFiles) setIsDraggingFiles(true);
+      return;
+    }
+    e.preventDefault();
+  }
+
+  function handleGridDragLeave(e: React.DragEvent) {
+    if (e.currentTarget === e.target) {
+      setIsDraggingFiles(false);
+    }
   }
 
   return (
@@ -318,7 +355,16 @@ export default function ProjectImagesManager({
           Loading images...
         </div>
       ) : images.length === 0 ? (
-        <div className="py-12 text-center border-2 border-dashed border-black/10 rounded-xl">
+        <div
+          className={`py-12 text-center border-2 border-dashed rounded-xl transition-colors ${
+            isDraggingFiles
+              ? "border-[var(--brand-blue)] bg-[var(--brand-blue)]/5"
+              : "border-black/10"
+          }`}
+          onDragOver={handleGridDragOver}
+          onDragLeave={handleGridDragLeave}
+          onDrop={handleDrop}
+        >
           <div className="text-black/40 mb-2">
             <svg
               className="w-12 h-12 mx-auto"
@@ -334,7 +380,9 @@ export default function ProjectImagesManager({
               />
             </svg>
           </div>
-          <p className="text-sm text-black/60">No images yet</p>
+          <p className="text-sm text-black/60">
+            Drop images here or use upload.
+          </p>
           <Button
             type="button"
             variant="outline"
@@ -349,8 +397,13 @@ export default function ProjectImagesManager({
         <>
           <div
             ref={gridRef}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3"
-            onDragOver={(e) => e.preventDefault()}
+            className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 rounded-xl transition-colors ${
+              isDraggingFiles
+                ? "ring-2 ring-[var(--brand-blue)] ring-offset-2"
+                : ""
+            }`}
+            onDragOver={handleGridDragOver}
+            onDragLeave={handleGridDragLeave}
             onDrop={handleDrop}
           >
             {visibleImages.map((img, idx) => {

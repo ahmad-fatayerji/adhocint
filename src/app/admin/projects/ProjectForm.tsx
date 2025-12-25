@@ -171,7 +171,7 @@ export default function ProjectForm({
       </div>
 
       <div className="grid gap-1">
-        <label className="text-sm text-black/70">Category</label>
+        <label className="text-sm text-black/70">Client</label>
         <input
           required
           value={category}

@@ -37,7 +37,16 @@ podman build --target builder -t localhost/adhocint-migrate:latest .
 
 echo "==> Reloading systemd user units"
 systemctl --user daemon-reload
-systemctl --user enable --now adhocint-db.service adhocint-minio.service
+
+# Wait for quadlet generator to create service units
+sleep 2
+
+# Verify units exist before enabling
+echo "==> Available adhocint units:"
+systemctl --user list-unit-files 'adhocint-*' || true
+
+echo "==> Starting database and minio services"
+systemctl --user start adhocint-db.service adhocint-minio.service
 
 echo "==> Waiting for Postgres"
 POSTGRES_USER="$(grep -E '^POSTGRES_USER=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
@@ -62,7 +71,7 @@ podman run --rm --network "$NETWORK_NAME" --env-file "$ENV_FILE" \
   '
 
 echo "==> Starting web"
-systemctl --user enable --now adhocint-web.service
+systemctl --user start adhocint-web.service
 
 echo "==> Health check"
 APP_PORT="$(grep -E '^APP_PORT=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"

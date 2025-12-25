@@ -1,0 +1,12 @@
+[Unit]
+Description=adhocint web
+After=adhocint-db.service adhocint-minio.service
+Requires=adhocint-db.service adhocint-minio.service
+
+[Container]
+Image=localhost/adhocint-web:latest
+ContainerName=adhocint-web
+EnvFile=/opt/adhocint/shared/.env.production
+Environment=HOSTNAME=0.0.0.0
+PublishPort=3001:3001
+Network=adhocint

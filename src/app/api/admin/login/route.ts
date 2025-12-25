@@ -4,6 +4,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { normalizeEmail, issueOtp } from "@/lib/auth/otp";
 import { OTP_PURPOSE_ADMIN_LOGIN } from "@/lib/auth/constants";
 import { sendMail } from "@/lib/mail";
+import { ensureSuperAdminForEmail } from "@/lib/auth/superAdmin";
 import { verify } from "@node-rs/argon2";
 
 function getClientIp(req: Request) {
@@ -71,6 +72,14 @@ export async function POST(req: Request) {
         return NextResponse.json(
             { ok: false, error: "Email and password are required." },
             { status: 400 }
+        );
+    }
+
+    const superAdminResult = await ensureSuperAdminForEmail(email);
+    if (!superAdminResult.ok) {
+        return NextResponse.json(
+            { ok: false, error: superAdminResult.error },
+            { status: 500 }
         );
     }
 

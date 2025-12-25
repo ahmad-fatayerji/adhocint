@@ -11,7 +11,6 @@ BACKUP_DIR_IN="$1"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env.production}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -36,20 +35,18 @@ if [[ ! -d "$MINIO_DIR" ]]; then
   exit 1
 fi
 
-DOCKER_COMPOSE=(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
-
 echo "==> Ensuring db + minio are up"
-"${DOCKER_COMPOSE[@]}" up -d db minio
+systemctl --user enable --now adhocint-db.service adhocint-minio.service
 
 echo "==> Restoring Postgres from $DB_DUMP"
-cat "$DB_DUMP" | "${DOCKER_COMPOSE[@]}" exec -T db pg_restore -U "${POSTGRES_USER:?}" -d "${POSTGRES_DB:?}" --clean --if-exists
+cat "$DB_DUMP" | podman exec -T adhocint-db pg_restore -U "${POSTGRES_USER:?}" -d "${POSTGRES_DB:?}" --clean --if-exists
 
 echo "==> Restoring MinIO bucket '$MINIO_BUCKET' from $MINIO_DIR"
-"${DOCKER_COMPOSE[@]}" run --rm -T \
+podman run --rm -T --network adhocint --env-file "$ENV_FILE" \
   -v "$BACKUP_DIR_IN/minio:/backup" \
-  mc sh -lc '
+  minio/mc:latest sh -lc '
     set -e
-    mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+    mc alias set local http://adhocint-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
     mc mirror --overwrite "/backup/$MINIO_BUCKET" "local/$MINIO_BUCKET"
   '
 

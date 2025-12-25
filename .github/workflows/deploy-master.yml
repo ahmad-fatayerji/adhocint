@@ -1,4 +1,4 @@
-name: Deploy adhocint.com (PM2 + rsync)
+name: Deploy adhocint.com (Podman Quadlet)
 
 on:
   push:
@@ -9,100 +9,69 @@ concurrency: adhocint-deploy
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install & build (standalone)
-        run: |
-          set -e
-          npm ci
-          npm run build
-          echo "${GITHUB_SHA} $(date -u +'%Y-%m-%dT%H:%M:%SZ')" > version.txt
-
-      - name: Prepare standalone bundle  ✅ FULL .next + public
-        run: |
-          set -e
-          rm -rf out_standalone
-          mkdir -p out_standalone/.next
-
-          # 1) Standalone runtime (server.js + minimal node_modules)
-          cp -r .next/standalone/* out_standalone/
-
-          # 2) FULL Next build (metadata + static) but skip heavy cache
-          rsync -a --delete --exclude 'cache/' .next/ out_standalone/.next/
-
-          # 3) Public assets (logo.png, heroimg.jpg, etc.)
-          [ -d public ] && rsync -a public/ out_standalone/public/
-
-          # Optional: version marker
-          cp version.txt out_standalone/
-
-      - name: Start ssh-agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Upload release via rsync
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-        run: |
-          set -e
-          RSYNC_DEST="/var/www/adhocint.com/releases/${{ github.sha }}/"
-          rsync -az --delete -e "ssh -o StrictHostKeyChecking=accept-new" \
-            out_standalone/ "${SSH_USER}@${SSH_HOST}:${RSYNC_DEST}"
-
-      - name: Activate release + PM2 restart (node server.js) + wait + prune
+      - name: Deploy via SSH (Podman Quadlet)
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
+          APP_PORT: ${{ secrets.APP_PORT }}
+          AUTH_SESSION_SECRET: ${{ secrets.AUTH_SESSION_SECRET }}
+          OTP_PEPPER: ${{ secrets.OTP_PEPPER }}
+          ADMIN_SESSION_COOKIE: ${{ secrets.ADMIN_SESSION_COOKIE }}
+          ADMIN_SESSION_TTL_DAYS: ${{ secrets.ADMIN_SESSION_TTL_DAYS }}
+          EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+          EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          CONTACT_TO: ${{ secrets.CONTACT_TO }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          MINIO_ROOT_USER: ${{ secrets.MINIO_ROOT_USER }}
+          MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
+          MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+          MINIO_PORT: ${{ secrets.MINIO_PORT }}
+          MINIO_CONSOLE_PORT: ${{ secrets.MINIO_CONSOLE_PORT }}
+          SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
+          SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
+          envs: NEXT_PUBLIC_GA_MEASUREMENT_ID,APP_PORT,AUTH_SESSION_SECRET,OTP_PEPPER,ADMIN_SESSION_COOKIE,ADMIN_SESSION_TTL_DAYS,EMAIL_HOST,EMAIL_PORT,EMAIL_USER,EMAIL_PASS,EMAIL_FROM,CONTACT_TO,POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB,MINIO_ROOT_USER,MINIO_ROOT_PASSWORD,MINIO_BUCKET,MINIO_PORT,MINIO_CONSOLE_PORT,SUPER_ADMIN_EMAIL,SUPER_ADMIN_PASSWORD
           script: |
-            set -eo pipefail
-            SITE=/var/www/adhocint.com
-            REL="$SITE/releases/${{ github.sha }}"
-            CUR="$SITE/current"
-            SHARED="$SITE/shared"
+            set -euo pipefail
+            APP_DIR=/opt/adhocint
+            SHARED="$APP_DIR/shared"
+            mkdir -p "$SHARED"
+            umask 077
+            cat > "$SHARED/.env.production" <<EOF
+            NEXT_PUBLIC_GA_MEASUREMENT_ID=${NEXT_PUBLIC_GA_MEASUREMENT_ID}
+            APP_PORT=${APP_PORT}
+            PORT=${APP_PORT}
+            AUTH_SESSION_SECRET=${AUTH_SESSION_SECRET}
+            OTP_PEPPER=${OTP_PEPPER}
+            ADMIN_SESSION_COOKIE=${ADMIN_SESSION_COOKIE}
+            ADMIN_SESSION_TTL_DAYS=${ADMIN_SESSION_TTL_DAYS}
+            EMAIL_HOST=${EMAIL_HOST}
+            EMAIL_PORT=${EMAIL_PORT}
+            EMAIL_USER=${EMAIL_USER}
+            EMAIL_PASS=${EMAIL_PASS}
+            EMAIL_FROM=${EMAIL_FROM}
+            CONTACT_TO=${CONTACT_TO}
+            POSTGRES_USER=${POSTGRES_USER}
+            POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+            POSTGRES_DB=${POSTGRES_DB}
+            MINIO_ROOT_USER=${MINIO_ROOT_USER}
+            MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+            MINIO_BUCKET=${MINIO_BUCKET}
+            MINIO_PORT=${MINIO_PORT}
+            MINIO_CONSOLE_PORT=${MINIO_CONSOLE_PORT}
+            SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL}
+            SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD}
+            EOF
 
-            [ -f "$SHARED/.env.local" ] || { echo "❌ $SHARED/.env.local missing"; exit 1; }
-
-            ln -sfn "$SHARED/.env.local" "$REL/.env.local"
-            if [ -d "$SHARED/uploads" ]; then
-              rm -rf "$REL/uploads"; ln -sfn "$SHARED/uploads" "$REL/uploads"
-            fi
-
-            ln -sfn "$REL" "$CUR"
-            echo "current -> $(readlink -f "$CUR")"
-
-            # Ensure production build metadata exists
-            [ -f "$CUR/.next/BUILD_ID" ] || { echo "❌ .next/BUILD_ID missing in release"; ls -la "$CUR/.next"; exit 1; }
-
-            # Pick the entry file for the standalone server
-            if [ -f "$CUR/server.js" ]; then ENTRY="$CUR/server.js";
-            elif [ -f "$CUR/.next/standalone/server.js" ]; then ENTRY="$CUR/.next/standalone/server.js";
-            else echo "❌ no server.js found"; ls -la "$CUR"; exit 1; fi
-
-            # Read PORT without sourcing the file
-            PORT=$(grep -E '^PORT=' "$CUR/.env.local" | tail -n1 | cut -d= -f2- || true)
-            [ -n "${PORT:-}" ] || PORT=3001
-
-            pm2 delete adhocint || true
-            PORT="$PORT" HOST="127.0.0.1" NODE_ENV=production \
-            pm2 start /usr/bin/node --name adhocint -- "$ENTRY"
-            pm2 save
-
-            # Wait for the app to bind then HTTP probe
-            for i in $(seq 1 60); do ss -ltn | grep -q ":$PORT" && break; sleep 1; done
-            ss -ltn | grep -q ":$PORT" || { echo "❌ Port :$PORT not open"; pm2 logs adhocint --lines 120; exit 1; }
-            curl -sfI "http://127.0.0.1:${PORT}" >/dev/null || { echo "❌ HTTP probe failed"; pm2 logs adhocint --lines 120; exit 1; }
-
-            # Keep last 5 releases
-            cd "$SITE/releases" && ls -1t | tail -n +6 | xargs -r rm -rf || true
+            cd "$APP_DIR"
+            GIT_PULL=1 ops/podman-quadlet-deploy.sh

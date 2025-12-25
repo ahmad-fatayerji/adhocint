@@ -4,7 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env.production}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -12,30 +11,28 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-# shellcheck disable=SC1090
-set -a
-source "$ENV_FILE"
-set +a
+POSTGRES_DB="$(grep -E '^POSTGRES_DB=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+MINIO_BUCKET="$(grep -E '^MINIO_BUCKET=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
 
 BACKUP_BASE_DIR="${BACKUP_DIR:-$ROOT_DIR/backups}"
 TS="$(date -u +"%Y%m%dT%H%M%SZ")"
 OUT_DIR="$BACKUP_BASE_DIR/$TS"
 mkdir -p "$OUT_DIR"
 
-DOCKER_COMPOSE=(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
-
 echo "==> Backing up Postgres to $OUT_DIR/db.dump"
-"${DOCKER_COMPOSE[@]}" exec -T db pg_dump -U "${POSTGRES_USER:?}" -d "${POSTGRES_DB:?}" -Fc > "$OUT_DIR/db.dump"
+POSTGRES_USER="$(grep -E '^POSTGRES_USER=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+POSTGRES_DB="$(grep -E '^POSTGRES_DB=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
+podman exec -T adhocint-db pg_dump -U "${POSTGRES_USER:?}" -d "${POSTGRES_DB:?}" -Fc > "$OUT_DIR/db.dump"
 
 echo "==> Backing up MinIO bucket '$MINIO_BUCKET' to $OUT_DIR/minio/"
 mkdir -p "$OUT_DIR/minio"
 
 # Use mc in the compose network (no host port assumptions)
-"${DOCKER_COMPOSE[@]}" run --rm -T \
+podman run --rm -T --network adhocint --env-file "$ENV_FILE" \
   -v "$OUT_DIR/minio:/backup" \
-  mc sh -lc '
+  minio/mc:latest sh -lc '
     set -e
-    mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+    mc alias set local http://adhocint-minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
     mc mirror --overwrite --remove "local/$MINIO_BUCKET" "/backup/$MINIO_BUCKET"
   '
 

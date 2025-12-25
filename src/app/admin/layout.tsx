@@ -18,11 +18,7 @@ export default function AdminLayout({
             <Link href="/admin" className="font-bold text-lg">
               Admin
             </Link>
-            <nav className="flex items-center gap-3 text-sm text-black/70">
-              <Link href="/admin/projects" className="hover:text-black">
-                Projects
-              </Link>
-            </nav>
+            <AdminNav sessionPromise={sessionPromise} />
           </div>
           {/* avoid making the whole layout async; just await inside */}
           <AdminHeaderAuth sessionPromise={sessionPromise} />
@@ -41,4 +37,26 @@ async function AdminHeaderAuth({
 }) {
   const session = await sessionPromise;
   return <AdminAuthControls isLoggedIn={!!session} />;
+}
+
+async function AdminNav({
+  sessionPromise,
+}: {
+  sessionPromise: ReturnType<typeof getAdminSession>;
+}) {
+  const session = await sessionPromise;
+  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
+
+  return (
+    <nav className="flex items-center gap-3 text-sm text-black/70">
+      <Link href="/admin/projects" className="hover:text-black">
+        Projects
+      </Link>
+      {isSuperAdmin ? (
+        <Link href="/admin/users" className="hover:text-black">
+          Admins
+        </Link>
+      ) : null}
+    </nav>
+  );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, memo } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Button from "@/components/ui/button";
 
 type ProjectImage = {
@@ -13,197 +13,30 @@ type ProjectImage = {
   url: string;
 };
 
-// Memoized image tile to prevent unnecessary re-renders
-const ImageTile = memo(function ImageTile({
-  img,
-  idx,
-  isSelected,
-  isDragging,
-  isCover,
-  showDropBefore,
-  showDropAfter,
-  onDragStart,
-  onDragOver,
-  onDragLeave,
-  onDragEnd,
-  onToggleSelect,
-  onSetCover,
-}: {
-  img: ProjectImage;
-  idx: number;
-  isSelected: boolean;
-  isDragging: boolean;
-  isCover: boolean;
-  showDropBefore: boolean;
-  showDropAfter: boolean;
-  onDragStart: (e: React.DragEvent, idx: number) => void;
-  onDragOver: (e: React.DragEvent, idx: number) => void;
-  onDragLeave: (e: React.DragEvent) => void;
-  onDragEnd: () => void;
-  onToggleSelect: (id: string) => void;
-  onSetCover: (id: string, isCover: boolean) => void;
-}) {
-  const [loaded, setLoaded] = useState(false);
-  const [inView, setInView] = useState(false);
-  const tileRef = useRef<HTMLDivElement>(null);
-
-  // Intersection Observer for lazy loading
-  useEffect(() => {
-    const el = tileRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setInView(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "100px", threshold: 0.1 }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={tileRef} className="relative">
-      {showDropBefore && (
-        <div className="absolute -left-1.5 top-0 bottom-0 w-1 bg-[var(--brand-blue)] rounded-full z-10 animate-pulse" />
-      )}
-
-      <div
-        draggable
-        onDragStart={(e) => onDragStart(e, idx)}
-        onDragOver={(e) => onDragOver(e, idx)}
-        onDragLeave={onDragLeave}
-        onDragEnd={onDragEnd}
-        className={`
-          relative aspect-square rounded-lg overflow-hidden cursor-grab active:cursor-grabbing
-          border-2 transition-all duration-200 ease-out
-          ${
-            isDragging
-              ? "opacity-40 scale-95 border-dashed border-black/30"
-              : ""
-          }
-          ${
-            isSelected
-              ? "border-[var(--brand-blue)] ring-2 ring-[var(--brand-blue)]/30"
-              : "border-transparent"
-          }
-          ${!isSelected ? "hover:border-black/20" : ""}
-          group
-        `}
-        onClick={() => onToggleSelect(img.id)}
-      >
-        {/* Placeholder */}
-        {(!inView || !loaded) && (
-          <div className="absolute inset-0 bg-black/5 animate-pulse" />
-        )}
-
-        {/* Actual image - only load when in view */}
-        {inView && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={img.url}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            onLoad={() => setLoaded(true)}
-            className={`w-full h-full object-cover bg-black/5 pointer-events-none transition-opacity duration-200 ${
-              loaded ? "opacity-100" : "opacity-0"
-            }`}
-            draggable={false}
-          />
-        )}
-
-        {/* Order number badge */}
-        <div className="absolute bottom-2 left-2 w-6 h-6 rounded-full bg-black/60 text-white text-xs font-medium flex items-center justify-center">
-          {idx + 1}
-        </div>
-
-        {/* Selection checkbox overlay */}
-        <div
-          className={`
-            absolute top-2 left-2 w-5 h-5 rounded border-2 
-            flex items-center justify-center transition-all
-            ${
-              isSelected
-                ? "bg-[var(--brand-blue)] border-[var(--brand-blue)]"
-                : "bg-white/80 border-black/20 opacity-0 group-hover:opacity-100"
-            }
-          `}
-        >
-          {isSelected && (
-            <svg
-              className="w-3 h-3 text-white"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-          )}
-        </div>
-
-        {/* Cover badge */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onSetCover(img.id, isCover);
-          }}
-          className={`
-            absolute top-2 right-2 px-2 py-0.5 rounded text-xs font-medium transition-all
-            ${
-              isCover
-                ? "bg-[var(--brand-brown)] text-white"
-                : "bg-black/50 text-white/80 opacity-0 group-hover:opacity-100 hover:bg-black/70"
-            }
-          `}
-        >
-          {isCover ? "★ Cover" : "Set cover"}
-        </button>
-
-        {/* Drag handle indicator */}
-        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-60 transition-opacity pointer-events-none">
-          <svg
-            className="w-4 h-4 text-white drop-shadow"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
-          </svg>
-        </div>
-      </div>
-
-      {showDropAfter && (
-        <div className="absolute -right-1.5 top-0 bottom-0 w-1 bg-[var(--brand-blue)] rounded-full z-10 animate-pulse" />
-      )}
-    </div>
-  );
-});
-
 export default function ProjectImagesManager({
   projectId,
 }: {
   projectId: string;
 }) {
   const [images, setImages] = useState<ProjectImage[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [savingOrder, setSavingOrder] = useState<boolean>(false);
-  const [uploading, setUploading] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
   const [coverId, setCoverId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
-  const [dropIdx, setDropIdx] = useState<number | null>(null);
+  const [visibleCount, setVisibleCount] = useState(30); // Show 30 images at a time
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
 
-  const orderedIds = images.map((x) => x.id);
+  // Drag state stored in refs to avoid re-renders during drag
+  const dragState = useRef<{
+    draggedIdx: number | null;
+    dropIdx: number | null;
+  }>({
+    draggedIdx: null,
+    dropIdx: null,
+  });
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -224,6 +57,7 @@ export default function ProjectImagesManager({
       const cover = next.find((x) => x.isCover);
       setCoverId(cover?.id ?? null);
       setSelectedIds(new Set());
+      setVisibleCount(30); // Reset pagination on refresh
     } finally {
       setLoading(false);
     }
@@ -232,6 +66,15 @@ export default function ProjectImagesManager({
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  const orderedIds = images.map((x) => x.id);
+  const visibleImages = images.slice(0, visibleCount);
+  const hasMoreImages = visibleCount < images.length;
+
+  const hasChanges =
+    images.some((img, i) => img.sortOrder !== i) ||
+    (coverId && images.find((x) => x.id === coverId)?.isCover === false) ||
+    (!coverId && images.some((x) => x.isCover));
 
   async function saveOrder() {
     if (savingOrder) return;
@@ -282,9 +125,7 @@ export default function ProjectImagesManager({
         const uploadUrl: string = createData.uploadUrl;
         const putRes = await fetch(uploadUrl, {
           method: "PUT",
-          headers: {
-            "Content-Type": file.type || "application/octet-stream",
-          },
+          headers: { "Content-Type": file.type || "application/octet-stream" },
           body: file,
         });
         if (!putRes.ok) {
@@ -292,7 +133,6 @@ export default function ProjectImagesManager({
           return;
         }
       }
-
       await refresh();
     } finally {
       setUploading(false);
@@ -347,71 +187,62 @@ export default function ProjectImagesManager({
     }
   }
 
-  // Drag and drop handlers - index-based for smooth reordering
+  // Drag handlers using refs to minimize re-renders
   function handleDragStart(e: React.DragEvent, idx: number) {
-    setDraggedIdx(idx);
+    dragState.current.draggedIdx = idx;
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", String(idx));
-    // Create a minimal drag image
-    const el = e.currentTarget as HTMLElement;
-    if (el) {
-      e.dataTransfer.setDragImage(el, el.offsetWidth / 2, el.offsetHeight / 2);
-    }
+    (e.currentTarget as HTMLElement).style.opacity = "0.4";
+  }
+
+  function handleDragEnd(e: React.DragEvent) {
+    (e.currentTarget as HTMLElement).style.opacity = "1";
+    // Clear all drop indicators
+    gridRef.current?.querySelectorAll("[data-drop-indicator]").forEach((el) => {
+      (el as HTMLElement).style.display = "none";
+    });
+    dragState.current = { draggedIdx: null, dropIdx: null };
   }
 
   function handleDragOver(e: React.DragEvent, idx: number) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    if (draggedIdx === null || idx === draggedIdx) {
-      setDropIdx(null);
-      return;
-    }
-    // Determine drop position based on mouse position within the target
+
+    const { draggedIdx } = dragState.current;
+    if (draggedIdx === null || idx === draggedIdx) return;
+
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const midX = rect.left + rect.width / 2;
-    // If dragging from left and hovering on right half, or vice versa
     const insertIdx = e.clientX < midX ? idx : idx + 1;
-    setDropIdx(insertIdx);
-  }
 
-  function handleDragLeave(e: React.DragEvent) {
-    // Only clear if leaving the grid area entirely
-    const relatedTarget = e.relatedTarget as HTMLElement;
-    if (!gridRef.current?.contains(relatedTarget)) {
-      setDropIdx(null);
+    if (dragState.current.dropIdx !== insertIdx) {
+      dragState.current.dropIdx = insertIdx;
+      // Update drop indicator visually without state
+      gridRef.current
+        ?.querySelectorAll("[data-drop-indicator]")
+        .forEach((el, i) => {
+          (el as HTMLElement).style.display =
+            i === insertIdx ? "block" : "none";
+        });
     }
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
-    if (draggedIdx === null || dropIdx === null) {
-      setDraggedIdx(null);
-      setDropIdx(null);
+    const { draggedIdx, dropIdx } = dragState.current;
+
+    if (draggedIdx === null || dropIdx === null || draggedIdx === dropIdx) {
       return;
     }
 
     setImages((prev) => {
       const copy = [...prev];
       const [item] = copy.splice(draggedIdx, 1);
-      // Adjust index if dropping after the dragged item's original position
       const adjustedIdx = dropIdx > draggedIdx ? dropIdx - 1 : dropIdx;
       copy.splice(adjustedIdx, 0, item);
       return copy.map((x, i) => ({ ...x, sortOrder: i }));
     });
-
-    setDraggedIdx(null);
-    setDropIdx(null);
   }
-
-  function handleDragEnd() {
-    setDraggedIdx(null);
-    setDropIdx(null);
-  }
-
-  const hasChanges =
-    images.some((img, i) => img.sortOrder !== i) ||
-    (coverId && images.find((x) => x.id === coverId)?.isCover === false) ||
-    (!coverId && images.some((x) => x.isCover));
 
   return (
     <section className="mt-10">
@@ -419,8 +250,7 @@ export default function ProjectImagesManager({
         <div>
           <h2 className="text-xl font-bold">Images</h2>
           <p className="mt-1 text-sm text-black/60">
-            Drag to reorder • Click to select • Click cover badge to set
-            thumbnail
+            Drag to reorder • Click to select • Click star to set cover
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -516,37 +346,130 @@ export default function ProjectImagesManager({
           </Button>
         </div>
       ) : (
-        <div
-          ref={gridRef}
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3"
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={handleDrop}
-        >
-          {images.map((img, idx) => (
-            <ImageTile
-              key={img.id}
-              img={img}
-              idx={idx}
-              isSelected={selectedIds.has(img.id)}
-              isDragging={draggedIdx === idx}
-              isCover={coverId === img.id}
-              showDropBefore={
-                dropIdx === idx && draggedIdx !== null && draggedIdx !== idx
-              }
-              showDropAfter={
-                dropIdx === idx + 1 &&
-                idx === images.length - 1 &&
-                draggedIdx !== null
-              }
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDragEnd={handleDragEnd}
-              onToggleSelect={toggleSelect}
-              onSetCover={(id, isCover) => setCoverId(isCover ? null : id)}
+        <>
+          <div
+            ref={gridRef}
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+          >
+            {visibleImages.map((img, idx) => {
+              const isSelected = selectedIds.has(img.id);
+              const isCover = coverId === img.id;
+
+              return (
+                <div key={img.id} className="relative">
+                  {/* Drop indicator - hidden by default, shown via JS */}
+                  <div
+                    data-drop-indicator
+                    className="absolute -left-1.5 top-0 bottom-0 w-1 bg-[var(--brand-blue)] rounded-full z-10"
+                    style={{ display: "none" }}
+                  />
+
+                  <div
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, idx)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => handleDragOver(e, idx)}
+                    className={`
+                    relative aspect-square rounded-lg overflow-hidden cursor-grab active:cursor-grabbing
+                    border-2 transition-colors
+                    ${
+                      isSelected
+                        ? "border-[var(--brand-blue)] ring-2 ring-[var(--brand-blue)]/30"
+                        : "border-transparent hover:border-black/20"
+                    }
+                    group
+                  `}
+                    onClick={() => toggleSelect(img.id)}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img.url}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover bg-black/5"
+                      draggable={false}
+                    />
+
+                    {/* Order number */}
+                    <div className="absolute bottom-2 left-2 w-6 h-6 rounded-full bg-black/60 text-white text-xs font-medium flex items-center justify-center pointer-events-none">
+                      {idx + 1}
+                    </div>
+
+                    {/* Selection checkbox */}
+                    <div
+                      className={`absolute top-2 left-2 w-5 h-5 rounded border-2 flex items-center justify-center pointer-events-none
+                      ${
+                        isSelected
+                          ? "bg-[var(--brand-blue)] border-[var(--brand-blue)]"
+                          : "bg-white/80 border-black/20 opacity-0 group-hover:opacity-100"
+                      }`}
+                    >
+                      {isSelected && (
+                        <svg
+                          className="w-3 h-3 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </div>
+
+                    {/* Cover badge */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCoverId(isCover ? null : img.id);
+                      }}
+                      className={`absolute top-2 right-2 px-2 py-0.5 rounded text-xs font-medium
+                      ${
+                        isCover
+                          ? "bg-[var(--brand-brown)] text-white"
+                          : "bg-black/50 text-white/80 opacity-0 group-hover:opacity-100 hover:bg-black/70"
+                      }`}
+                    >
+                      {isCover ? "★ Cover" : "Set cover"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {/* Final drop indicator for dropping at the end */}
+            <div
+              data-drop-indicator
+              className="absolute -right-1.5 top-0 bottom-0 w-1 bg-[var(--brand-blue)] rounded-full z-10"
+              style={{ display: "none" }}
             />
-          ))}
-        </div>
+          </div>
+
+          {/* Load More / Show All button */}
+          {hasMoreImages && (
+            <div className="mt-4 text-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setVisibleCount((c) => c + 30)}
+              >
+                Load More ({images.length - visibleCount} remaining)
+              </Button>
+              <button
+                type="button"
+                className="ml-3 text-sm text-black/50 hover:text-black/70 underline"
+                onClick={() => setVisibleCount(images.length)}
+              >
+                Show All
+              </button>
+            </div>
+          )}
+        </>
       )}
     </section>
   );

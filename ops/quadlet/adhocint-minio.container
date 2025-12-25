@@ -4,7 +4,7 @@ Description=adhocint minio
 [Container]
 Image=minio/minio:latest
 ContainerName=adhocint-minio
-EnvFile=/opt/adhocint/shared/.env.production
+EnvironmentFile=/opt/adhocint/shared/.env.production
 Volume=adhocint-minio-data:/data
 Network=adhocint
 Command=server /data --console-address ":9001"

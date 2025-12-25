@@ -15,6 +15,8 @@ type Project = {
   published: boolean;
 };
 
+const DEFAULT_LOCATION = "N/A";
+
 function slugify(input: string) {
   return input
     .trim()
@@ -38,7 +40,9 @@ export default function ProjectForm({
 
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [location, setLocation] = useState(initial?.location ?? "");
+  const [location, setLocation] = useState(
+    initial?.location?.trim() || DEFAULT_LOCATION
+  );
   const [year, setYear] = useState(
     String(initial?.year ?? new Date().getFullYear())
   );
@@ -52,7 +56,7 @@ export default function ProjectForm({
     () => ({
       slug: slugify(slug),
       title,
-      location,
+      location: location.trim() || DEFAULT_LOCATION,
       year: Number(year),
       category,
       description,
@@ -120,6 +124,8 @@ export default function ProjectForm({
     }
   }
 
+  const showLocationField = false;
+
   return (
     <form className="mt-6 grid gap-3" onSubmit={onSave}>
       <div className="grid gap-1">
@@ -147,15 +153,19 @@ export default function ProjectForm({
         />
       </div>
 
-      <div className="grid gap-1">
-        <label className="text-sm text-black/70">Location</label>
-        <input
-          required
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          className="form-field h-11 px-3"
-        />
-      </div>
+      {showLocationField ? (
+        <div className="grid gap-1">
+          <label className="text-sm text-black/70">Location</label>
+          <input
+            required
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="form-field h-11 px-3"
+          />
+        </div>
+      ) : (
+        <input type="hidden" value={location} readOnly />
+      )}
 
       <div className="grid gap-1">
         <label className="text-sm text-black/70">Year</label>

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth/session";
 
+const DEFAULT_LOCATION = "N/A";
+
 function asString(v: any) {
     return typeof v === "string" ? v : "";
 }
@@ -83,13 +85,13 @@ export async function PUT(
 
     const slug = normalizeSlug(asString(body?.slug));
     const title = asString(body?.title).trim();
-    const location = asString(body?.location).trim();
+    const location = asString(body?.location).trim() || DEFAULT_LOCATION;
     const year = asInt(body?.year);
     const category = asString(body?.category).trim();
     const description = asString(body?.description).trim();
     const published = asBoolean(body?.published);
 
-    if (!slug || !title || !location || !category || !description || !Number.isFinite(year)) {
+    if (!slug || !title || !category || !description || !Number.isFinite(year)) {
         return NextResponse.json(
             { ok: false, error: "Missing required fields" },
             { status: 400 }

@@ -7,7 +7,7 @@ ContainerName=adhocint-minio
 EnvironmentFile=/opt/adhocint/shared/.env.production
 Volume=adhocint-minio-data:/data
 Network=adhocint
-Command=server /data --console-address ":9001"
+Exec=server /data --console-address ":9001"
 
 [Install]
 WantedBy=default.target

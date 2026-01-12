@@ -232,7 +232,7 @@ function ProjectCard({
                 <>
                   {/* Placeholder while loading */}
                   {!imageLoaded && (
-                    <div className="absolute inset-0 bg-black/5 animate-pulse" />
+                    <div className="absolute inset-0 bg-black/5 skeleton-shimmer" />
                   )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -388,7 +388,7 @@ function ProjectCard({
                   style={{ aspectRatio: previewRatio }}
                 >
                   {!previewLoaded && (
-                    <div className="absolute inset-0 rounded-2xl bg-black/5 animate-pulse" />
+                    <div className="absolute inset-0 rounded-2xl bg-black/5 skeleton-shimmer" />
                   )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img

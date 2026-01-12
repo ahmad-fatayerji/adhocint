@@ -18,6 +18,13 @@ async function getObjectWithRetry(bucket: string, key: string, retries = 2) {
     throw lastError || new Error("Failed to get object");
 }
 
+async function getObjectOptional(bucket: string, key: string) {
+    try {
+        return await getObjectStream({ bucket, key });
+    } catch {
+        return null;
+    }
+}
 const PUBLIC_THUMB_WIDTHS = [480, 720, 960, 1280];
 const PUBLIC_RATIO = 10 / 16;
 
@@ -80,7 +87,10 @@ export async function GET(
             );
             const normalizedWidth = closestWidth(width, PUBLIC_THUMB_WIDTHS);
             const preset = `16x10_w${normalizedWidth}`;
-            const thumb = await getObjectWithRetry(bucket, thumbKey(image.objectKey, preset));
+            const thumb = await getObjectOptional(
+                bucket,
+                thumbKey(image.objectKey, preset)
+            );
             if (thumb) {
                 const res = new NextResponse(thumb.stream as ReadableStream, {
                     status: 200,

@@ -32,6 +32,13 @@ async function getObjectWithRetry(bucket: string, key: string, retries = 2) {
     throw lastError || new Error("Failed to get object");
 }
 
+async function getObjectOptional(bucket: string, key: string) {
+    try {
+        return await getObjectStream({ bucket, key });
+    } catch {
+        return null;
+    }
+}
 function parsePositiveInt(value: string | null) {
     if (!value) return null;
     const n = Number.parseInt(value, 10);
@@ -140,7 +147,10 @@ export async function GET(
             const preset = isSquare
                 ? `sq_w${normalizedWidth}`
                 : `16x10_w${normalizedWidth}`;
-            const thumb = await getObjectWithRetry(bucket, thumbKey(img.objectKey, preset));
+            const thumb = await getObjectOptional(
+                bucket,
+                thumbKey(img.objectKey, preset)
+            );
             if (thumb) {
                 const res = new NextResponse(thumb.stream as ReadableStream, {
                     status: 200,

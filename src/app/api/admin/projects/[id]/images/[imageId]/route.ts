@@ -114,7 +114,13 @@ export async function GET(
             }
 
             const out = await pipeline.toBuffer();
-            return new NextResponse(out, {
+            const body = new ReadableStream<Uint8Array>({
+                start(controller) {
+                    controller.enqueue(out);
+                    controller.close();
+                },
+            });
+            return new NextResponse(body, {
                 status: 200,
                 headers: {
                     "Content-Type": `image/${format}`,

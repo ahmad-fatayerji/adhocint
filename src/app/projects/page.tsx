@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -24,7 +24,9 @@ function ProjectCard({
   const [direction, setDirection] = useState<1 | -1>(1);
   const [isVisible, setIsVisible] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const didSwipeRef = useRef(false);
 
   const images = project.images || [];
   const current = images[index];
@@ -62,6 +64,20 @@ function ProjectCard({
     setIndex(idx);
   }
 
+  useEffect(() => {
+    if (!isPreviewOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsPreviewOpen(false);
+        return;
+      }
+      if (e.key === "ArrowRight") changeIndex(1);
+      if (e.key === "ArrowLeft") changeIndex(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isPreviewOpen, images.length]);
+
   return (
     <div
       ref={cardRef}
@@ -69,7 +85,24 @@ function ProjectCard({
     >
       <div
         className="relative aspect-[16/10] bg-black/5"
+        role="button"
+        tabIndex={0}
+        aria-label={`Open ${project.title} gallery`}
+        onClick={() => {
+          if (didSwipeRef.current) {
+            didSwipeRef.current = false;
+            return;
+          }
+          setIsPreviewOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsPreviewOpen(true);
+          }
+        }}
         onTouchStart={(e) => {
+          didSwipeRef.current = false;
           const t = e.touches[0];
           (
             e.currentTarget as HTMLElement & {
@@ -107,6 +140,7 @@ function ProjectCard({
           const dx = t.clientX - startX;
           const dy = Math.abs(t.clientY - startY);
           if (Math.abs(dx) > 40 && dy < 60 && dt < 800) {
+            didSwipeRef.current = true;
             changeIndex(dx < 0 ? 1 : -1);
           }
         }}
@@ -167,18 +201,46 @@ function ProjectCard({
         {images.length > 1 && (
           <>
             <button
-              onClick={() => changeIndex(-1)}
-              className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/85 hover:bg-white text-[var(--brand-blue)] shadow opacity-100 md:opacity-0 md:group-hover:opacity-100 transition z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                changeIndex(-1);
+              }}
+              className="inline-flex absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 items-center justify-center rounded-full bg-white/90 hover:bg-white text-[var(--brand-blue)] shadow-sm ring-1 ring-black/5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition z-10"
               aria-label="Previous image"
             >
-              ‹
+              <svg
+                viewBox="0 0 20 20"
+                className="w-4 h-4 mx-auto"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12.5 4.5 7 10l5.5 5.5" />
+              </svg>
             </button>
             <button
-              onClick={() => changeIndex(1)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/85 hover:bg-white text-[var(--brand-blue)] shadow opacity-100 md:opacity-0 md:group-hover:opacity-100 transition z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                changeIndex(1);
+              }}
+              className="inline-flex absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 items-center justify-center rounded-full bg-white/90 hover:bg-white text-[var(--brand-blue)] shadow-sm ring-1 ring-black/5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition z-10"
               aria-label="Next image"
             >
-              ›
+              <svg
+                viewBox="0 0 20 20"
+                className="w-4 h-4 mx-auto"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M7.5 4.5 13 10l-5.5 5.5" />
+              </svg>
             </button>
           </>
         )}
@@ -188,7 +250,10 @@ function ProjectCard({
             {images.slice(0, 8).map((_, i) => (
               <button
                 key={i}
-                onClick={() => selectIndex(i)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  selectIndex(i);
+                }}
                 aria-label={`Show image ${i + 1}`}
                 className={`h-2 w-2 rounded-full border border-[var(--brand-blue)]/40 transition ${
                   i === index
@@ -204,6 +269,17 @@ function ProjectCard({
             )}
           </div>
         )}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsPreviewOpen(true);
+          }}
+          className="absolute bottom-2 right-2 px-2.5 py-1 rounded-full text-xs font-medium bg-white/85 text-black/80 shadow opacity-100 md:opacity-0 md:group-hover:opacity-100 transition"
+          aria-label="Open gallery"
+        >
+          View
+        </button>
       </div>
 
       <div className="p-6 flex flex-col gap-3 flex-1">
@@ -211,12 +287,119 @@ function ProjectCard({
           {project.title}
         </h3>
         <p className="text-xs uppercase tracking-wide text-black/60">
-          {project.client} • {project.year}
+          {project.client} â€¢ {project.year}
         </p>
         <p className="text-sm text-black/70 leading-relaxed line-clamp-5">
           {project.description}
         </p>
       </div>
+
+      {isPreviewOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setIsPreviewOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-5xl rounded-2xl bg-white shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setIsPreviewOpen(false)}
+              className="absolute right-3 top-3 z-10 inline-flex items-center justify-center rounded-full bg-white/90 text-black/70 w-9 h-9 hover:bg-white shadow-sm ring-1 ring-black/10 transition"
+              aria-label="Close gallery"
+            >
+              <svg
+                viewBox="0 0 20 20"
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M6 6l8 8M14 6l-8 8" />
+              </svg>
+            </button>
+            <div className="relative bg-black/5">
+              {current ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={current}
+                  alt={project.title}
+                  className="w-full h-auto max-h-[80vh] object-contain"
+                  loading="eager"
+                  decoding="async"
+                />
+              ) : (
+                <div className="w-full h-[50vh]" />
+              )}
+              {images.length > 1 && (
+                <>
+                  <button
+                    onClick={() => changeIndex(-1)}
+                    className="inline-flex absolute left-3 top-1/2 -translate-y-1/2 h-11 w-11 items-center justify-center rounded-full bg-white/95 hover:bg-white text-[var(--brand-blue)] shadow-sm ring-1 ring-black/10"
+                    aria-label="Previous image"
+                  >
+                    <svg
+                      viewBox="0 0 20 20"
+                      className="w-5 h-5 mx-auto"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M12.5 4.5 7 10l5.5 5.5" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => changeIndex(1)}
+                    className="inline-flex absolute right-3 top-1/2 -translate-y-1/2 h-11 w-11 items-center justify-center rounded-full bg-white/95 hover:bg-white text-[var(--brand-blue)] shadow-sm ring-1 ring-black/10"
+                    aria-label="Next image"
+                  >
+                    <svg
+                      viewBox="0 0 20 20"
+                      className="w-5 h-5 mx-auto"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M7.5 4.5 13 10l-5.5 5.5" />
+                    </svg>
+                  </button>
+                </>
+              )}
+            </div>
+            {images.length > 1 && (
+              <div className="flex items-center justify-center gap-2 py-3 bg-white border-t border-black/10">
+                {images.slice(0, 10).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => selectIndex(i)}
+                    aria-label={`Show image ${i + 1}`}
+                    className={`h-2.5 w-2.5 rounded-full border border-[var(--brand-blue)]/40 transition ${
+                      i === index
+                        ? "bg-[var(--brand-blue)]"
+                        : "bg-[var(--brand-blue)]/20 hover:bg-[var(--brand-blue)]/40"
+                    }`}
+                  />
+                ))}
+                {images.length > 10 && (
+                  <span className="text-[10px] text-black/60">
+                    +{images.length - 10}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -269,9 +452,11 @@ export default function ProjectsPage() {
           </div>
         )}
         <p className="text-[10px] mt-10 text-center text-black/50 tracking-wide">
-          © AD HOC International s.a.r.l
+          Â© AD HOC International s.a.r.l
         </p>
       </div>
     </main>
   );
 }
+
+

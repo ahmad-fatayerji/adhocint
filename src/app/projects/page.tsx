@@ -32,6 +32,11 @@ function ProjectCard({
   const current = images[index];
   const currentThumb = current?.thumbUrl;
   const currentFull = current?.fullUrl;
+  const currentSrcSet = currentFull
+    ? buildSrcSet(currentFull, [480, 720, 960, 1280])
+    : "";
+  const currentSizes =
+    "(max-width: 639px) 100vw, (max-width: 1279px) 50vw, 33vw";
 
   // Intersection Observer for lazy loading
   useEffect(() => {
@@ -181,7 +186,9 @@ function ProjectCard({
                   )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={currentThumb}
+                    src={currentThumb || currentFull || ""}
+                    srcSet={currentSrcSet}
+                    sizes={currentSizes}
                     alt={project.title}
                     loading="eager"
                     decoding="async"
@@ -404,6 +411,23 @@ function ProjectCard({
       )}
     </div>
   );
+}
+
+function buildSrcSet(baseUrl: string, widths: number[]) {
+  return widths
+    .map((width) => `${withQuery(baseUrl, "w", width)} ${width}w`)
+    .join(", ");
+}
+
+function withQuery(baseUrl: string, key: string, value: number) {
+  try {
+    const url = new URL(baseUrl, "http://local");
+    url.searchParams.set(key, String(value));
+    return url.pathname + url.search + url.hash;
+  } catch {
+    const joiner = baseUrl.includes("?") ? "&" : "?";
+    return `${baseUrl}${joiner}${key}=${value}`;
+  }
 }
 
 export default function ProjectsPage() {

@@ -296,7 +296,7 @@ function ProjectCard({
           {project.title}
         </h3>
         <p className="text-xs uppercase tracking-wide text-black/60">
-          {project.client} â€¢ {project.year}
+          {project.client} &bull; {project.year}
         </p>
         <p className="text-sm text-black/70 leading-relaxed line-clamp-5">
           {project.description}
@@ -487,7 +487,7 @@ export default function ProjectsPage() {
           </div>
         )}
         <p className="text-[10px] mt-10 text-center text-black/50 tracking-wide">
-          Â© AD HOC International s.a.r.l
+          &copy; AD HOC International s.a.r.l
         </p>
       </div>
     </main>

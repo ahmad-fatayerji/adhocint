@@ -33,7 +33,7 @@ function ProjectCard({
   const currentThumb = current?.thumbUrl;
   const currentFull = current?.fullUrl;
   const currentSrcSet = currentFull
-    ? buildSrcSet(currentFull, [480, 720, 960, 1280])
+    ? buildSrcSet(currentFull, [480, 720, 960, 1280], 10 / 16)
     : "";
   const currentSizes =
     "(max-width: 639px) 100vw, (max-width: 1279px) 50vw, 33vw";
@@ -413,20 +413,29 @@ function ProjectCard({
   );
 }
 
-function buildSrcSet(baseUrl: string, widths: number[]) {
+function buildSrcSet(baseUrl: string, widths: number[], ratio: number) {
   return widths
-    .map((width) => `${withQuery(baseUrl, "w", width)} ${width}w`)
+    .map((width) => {
+      const height = Math.round(width * ratio);
+      const url = withQueries(baseUrl, { w: width, h: height });
+      return `${url} ${width}w`;
+    })
     .join(", ");
 }
 
-function withQuery(baseUrl: string, key: string, value: number) {
+function withQueries(baseUrl: string, params: Record<string, number>) {
   try {
     const url = new URL(baseUrl, "http://local");
-    url.searchParams.set(key, String(value));
+    Object.entries(params).forEach(([key, value]) => {
+      url.searchParams.set(key, String(value));
+    });
     return url.pathname + url.search + url.hash;
   } catch {
     const joiner = baseUrl.includes("?") ? "&" : "?";
-    return `${baseUrl}${joiner}${key}=${value}`;
+    const query = Object.entries(params)
+      .map(([key, value]) => `${key}=${value}`)
+      .join("&");
+    return `${baseUrl}${joiner}${query}`;
   }
 }
 

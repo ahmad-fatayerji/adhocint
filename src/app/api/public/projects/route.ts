@@ -29,7 +29,7 @@ export async function GET() {
             description: p.description,
             images: imgs.map((img) => ({
                 fullUrl: `/api/public/project-images/${img.id}`,
-                thumbUrl: `/api/public/project-images/${img.id}?w=720`,
+                thumbUrl: `/api/public/project-images/${img.id}?w=720&h=450`,
             })),
         };
     });

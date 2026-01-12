@@ -43,20 +43,62 @@ function clamp(n: number, min: number, max: number) {
     return Math.max(min, Math.min(max, n));
 }
 
-function pickFormat(acceptHeader: string | null, explicit?: string | null) {
-    const normalized = explicit?.toLowerCase().trim();
-    if (normalized === "avif" || normalized === "webp" || normalized === "jpeg" || normalized === "jpg" || normalized === "png") {
-        return normalized === "jpg" ? "jpeg" : normalized;
-    }
-    const accept = acceptHeader?.toLowerCase() || "";
-    if (accept.includes("image/avif")) return "avif";
-    if (accept.includes("image/webp")) return "webp";
-    return "jpeg";
+const PUBLIC_THUMB_WIDTHS = [480, 720, 960, 1280];
+const ADMIN_THUMB_WIDTHS = [320];
+const PUBLIC_RATIO = 10 / 16;
+
+function closestWidth(requested: number, allowed: number[]) {
+    return allowed.reduce((prev, curr) =>
+        Math.abs(curr - requested) < Math.abs(prev - requested) ? curr : prev
+    );
 }
 
-async function streamToBuffer(stream: ReadableStream<Uint8Array>) {
-    const arrayBuffer = await new Response(stream).arrayBuffer();
-    return Buffer.from(arrayBuffer);
+function thumbKey(objectKey: string, preset: string) {
+    return `${objectKey}__thumb_${preset}.webp`;
+}
+
+async function uploadThumbs(opts: { bucket: string; objectKey: string; bytes: Uint8Array }) {
+    const source = Buffer.from(opts.bytes);
+    const base = sharp(source).rotate();
+
+    for (const width of ADMIN_THUMB_WIDTHS) {
+        const out = await base
+            .clone()
+            .resize({
+                width,
+                height: width,
+                fit: "cover",
+                withoutEnlargement: true,
+            })
+            .webp({ quality: 74 })
+            .toBuffer();
+        await putObject({
+            bucket: opts.bucket,
+            key: thumbKey(opts.objectKey, `sq_w${width}`),
+            body: out,
+            contentType: "image/webp",
+        });
+    }
+
+    for (const width of PUBLIC_THUMB_WIDTHS) {
+        const height = Math.round(width * PUBLIC_RATIO);
+        const out = await base
+            .clone()
+            .resize({
+                width,
+                height,
+                fit: "cover",
+                withoutEnlargement: true,
+            })
+            .webp({ quality: 74 })
+            .toBuffer();
+        await putObject({
+            bucket: opts.bucket,
+            key: thumbKey(opts.objectKey, `16x10_w${width}`),
+            body: out,
+            contentType: "image/webp",
+        });
+    }
 }
 
 export async function GET(
@@ -87,47 +129,32 @@ export async function GET(
         const url = new URL(req.url);
         const requestedWidth = parsePositiveInt(url.searchParams.get("w"));
         const requestedHeight = parsePositiveInt(url.searchParams.get("h"));
-        const requestedFormat = url.searchParams.get("format");
-        const isThumb = Boolean(requestedWidth || requestedHeight || requestedFormat);
+        const isThumb = Boolean(requestedWidth || requestedHeight);
 
         if (isThumb) {
             const width = clamp(requestedWidth ?? requestedHeight ?? 320, 64, 2048);
             const height = clamp(requestedHeight ?? requestedWidth ?? 320, 64, 2048);
-            const format = pickFormat(req.headers.get("accept"), requestedFormat);
-            const buffer = await streamToBuffer(obj.stream as ReadableStream<Uint8Array>);
-
-            let pipeline = sharp(buffer).resize({
-                width,
-                height,
-                fit: "cover",
-                withoutEnlargement: true,
-            });
-
-            if (format === "avif") {
-                pipeline = pipeline.avif({ quality: 50, effort: 4 });
-            } else if (format === "webp") {
-                pipeline = pipeline.webp({ quality: 72 });
-            } else if (format === "png") {
-                pipeline = pipeline.png({ compressionLevel: 8 });
-            } else {
-                pipeline = pipeline.jpeg({ quality: 75, mozjpeg: true });
+            const isSquare = width === height;
+            const allowed = isSquare ? ADMIN_THUMB_WIDTHS : PUBLIC_THUMB_WIDTHS;
+            const normalizedWidth = closestWidth(width, allowed);
+            const preset = isSquare
+                ? `sq_w${normalizedWidth}`
+                : `16x10_w${normalizedWidth}`;
+            const thumb = await getObjectWithRetry(bucket, thumbKey(img.objectKey, preset));
+            if (thumb) {
+                const res = new NextResponse(thumb.stream as ReadableStream, {
+                    status: 200,
+                    headers: {
+                        "Content-Type": "image/webp",
+                        "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+                    },
+                });
+                if (typeof thumb.contentLength === "number") {
+                    res.headers.set("Content-Length", String(thumb.contentLength));
+                }
+                if (thumb.etag) res.headers.set("ETag", String(thumb.etag));
+                return res;
             }
-
-            const out = await pipeline.toBuffer();
-            const body = new ReadableStream<Uint8Array>({
-                start(controller) {
-                    controller.enqueue(out);
-                    controller.close();
-                },
-            });
-            return new NextResponse(body, {
-                status: 200,
-                headers: {
-                    "Content-Type": `image/${format}`,
-                    "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
-                    "Vary": "Accept",
-                },
-            });
         }
 
         const res = new NextResponse(obj.stream as ReadableStream, {
@@ -194,6 +221,12 @@ export async function PUT(
                 contentType: contentType || img.contentType,
                 bytes: BigInt(bytes.byteLength),
             },
+        });
+
+        await uploadThumbs({
+            bucket,
+            objectKey: img.objectKey,
+            bytes,
         });
 
         return NextResponse.json({ ok: true }, { status: 200 });

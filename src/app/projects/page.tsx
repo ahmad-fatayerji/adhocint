@@ -12,6 +12,12 @@ type PublicProject = {
   images: { fullUrl: string; thumbUrl: string }[];
 };
 
+type ImageMeta = {
+  width: number;
+  height: number;
+  ratio: number;
+};
+
 // Individual project card with visibility-based loading
 function ProjectCard({
   project,
@@ -25,6 +31,10 @@ function ProjectCard({
   const [isVisible, setIsVisible] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewLoaded, setPreviewLoaded] = useState(false);
+  const [previewMeta, setPreviewMeta] = useState<Record<string, ImageMeta>>(
+    {}
+  );
   const cardRef = useRef<HTMLDivElement>(null);
   const didSwipeRef = useRef(false);
 
@@ -37,6 +47,33 @@ function ProjectCard({
     : "";
   const currentSizes =
     "(max-width: 639px) 100vw, (max-width: 1279px) 50vw, 33vw";
+  const previewRatio =
+    (currentFull && previewMeta[currentFull]?.ratio) || 16 / 10;
+
+  const preloadImageMeta = useCallback((url: string) => {
+    if (!url) return;
+    setPreviewMeta((prev) => {
+      if (prev[url]) return prev;
+      const img = new Image();
+      img.onload = () => {
+        const width = img.naturalWidth || 1;
+        const height = img.naturalHeight || 1;
+        setPreviewMeta((current) => {
+          if (current[url]) return current;
+          return {
+            ...current,
+            [url]: {
+              width,
+              height,
+              ratio: width / height,
+            },
+          };
+        });
+      };
+      img.src = url;
+      return prev;
+    });
+  }, []);
 
   // Intersection Observer for lazy loading
   useEffect(() => {
@@ -58,16 +95,23 @@ function ProjectCard({
     return () => observer.disconnect();
   }, [onVisible]);
 
+  useEffect(() => {
+    if (!isVisible || !currentFull) return;
+    preloadImageMeta(currentFull);
+  }, [currentFull, isVisible, preloadImageMeta]);
+
   function changeIndex(dir: 1 | -1) {
     if (images.length <= 1) return;
     setDirection(dir);
     setImageLoaded(false);
+    setPreviewLoaded(false);
     setIndex((i) => (i + dir + images.length) % images.length);
   }
 
   function selectIndex(idx: number) {
     if (idx === index) return;
     setImageLoaded(false);
+    setPreviewLoaded(false);
     setIndex(idx);
   }
 
@@ -84,6 +128,12 @@ function ProjectCard({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isPreviewOpen, images.length]);
+
+  useEffect(() => {
+    if (!isPreviewOpen || !currentFull) return;
+    setPreviewLoaded(false);
+    preloadImageMeta(currentFull);
+  }, [currentFull, isPreviewOpen, preloadImageMeta]);
 
   return (
     <div
@@ -333,14 +383,40 @@ function ProjectCard({
             </button>
             <div className="relative p-4 sm:p-6 bg-gradient-to-b from-white to-white/95">
               {currentFull ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={currentFull}
-                  alt={project.title}
-                  className="w-full h-auto max-h-[80vh] object-contain rounded-2xl bg-black/5 shadow-sm"
-                  loading="eager"
-                  decoding="async"
-                />
+                <div
+                  className="relative w-full max-h-[80vh] min-h-[40vh]"
+                  style={{ aspectRatio: previewRatio }}
+                >
+                  {!previewLoaded && (
+                    <div className="absolute inset-0 rounded-2xl bg-black/5 animate-pulse" />
+                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={currentFull}
+                    alt={project.title}
+                    loading="eager"
+                    decoding="async"
+                    width={previewMeta[currentFull]?.width}
+                    height={previewMeta[currentFull]?.height}
+                    onLoad={(e) => {
+                      const target = e.currentTarget;
+                      const width = target.naturalWidth || 1;
+                      const height = target.naturalHeight || 1;
+                      setPreviewMeta((prev) => ({
+                        ...prev,
+                        [currentFull]: {
+                          width,
+                          height,
+                          ratio: width / height,
+                        },
+                      }));
+                      setPreviewLoaded(true);
+                    }}
+                    className={`w-full h-full object-contain rounded-2xl bg-black/5 shadow-sm transition-opacity duration-300 ${
+                      previewLoaded ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+                </div>
               ) : (
                 <div className="w-full h-[50vh] rounded-2xl bg-black/5" />
               )}

@@ -14,6 +14,12 @@ type ProjectImage = {
   thumbUrl?: string;
 };
 
+type ImageMeta = {
+  width: number;
+  height: number;
+  ratio: number;
+};
+
 export default function ProjectImagesManager({
   projectId,
 }: {
@@ -29,6 +35,10 @@ export default function ProjectImagesManager({
   const [visibleCount, setVisibleCount] = useState(30); // Show 30 images at a time
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoaded, setPreviewLoaded] = useState(false);
+  const [previewMeta, setPreviewMeta] = useState<Record<string, ImageMeta>>(
+    {}
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Drag state stored in refs to avoid re-renders during drag
@@ -86,12 +96,40 @@ export default function ProjectImagesManager({
     return () => window.removeEventListener("keydown", handleKey);
   }, [previewUrl]);
 
+  useEffect(() => {
+    if (!previewUrl) return;
+    setPreviewLoaded(false);
+    setPreviewMeta((prev) => {
+      if (prev[previewUrl]) return prev;
+      const img = new Image();
+      img.onload = () => {
+        const width = img.naturalWidth || 1;
+        const height = img.naturalHeight || 1;
+        setPreviewMeta((current) => {
+          if (current[previewUrl]) return current;
+          return {
+            ...current,
+            [previewUrl]: {
+              width,
+              height,
+              ratio: width / height,
+            },
+          };
+        });
+      };
+      img.src = previewUrl;
+      return prev;
+    });
+  }, [previewUrl]);
+
   const orderedIds = useMemo(() => images.map((x) => x.id), [images]);
   const visibleImages = useMemo(
     () => images.slice(0, visibleCount),
     [images, visibleCount]
   );
   const hasMoreImages = visibleCount < images.length;
+  const previewRatio =
+    (previewUrl && previewMeta[previewUrl]?.ratio) || 4 / 3;
 
   const hasChanges =
     images.some((img, i) => img.sortOrder !== i) ||
@@ -326,6 +364,7 @@ export default function ProjectImagesManager({
   }, []);
 
   const handleOpenPreview = useCallback((url: string) => {
+    setPreviewLoaded(false);
     setPreviewUrl(url);
   }, []);
 
@@ -531,14 +570,42 @@ export default function ProjectImagesManager({
               </svg>
             </button>
             <div className="p-4 sm:p-6 bg-gradient-to-b from-white to-white/95">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={previewUrl}
-                alt=""
-                className="w-full h-auto max-h-[80vh] object-contain rounded-2xl bg-black/5 shadow-sm"
-                loading="eager"
-                decoding="async"
-              />
+              <div
+                className="relative w-full max-h-[80vh] min-h-[40vh]"
+                style={{ aspectRatio: previewRatio }}
+              >
+                {!previewLoaded && (
+                  <div className="absolute inset-0 rounded-2xl bg-black/5 animate-pulse" />
+                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  width={previewUrl ? previewMeta[previewUrl]?.width : undefined}
+                  height={previewUrl ? previewMeta[previewUrl]?.height : undefined}
+                  onLoad={(e) => {
+                    const target = e.currentTarget;
+                    const width = target.naturalWidth || 1;
+                    const height = target.naturalHeight || 1;
+                    if (previewUrl) {
+                      setPreviewMeta((prev) => ({
+                        ...prev,
+                        [previewUrl]: {
+                          width,
+                          height,
+                          ratio: width / height,
+                        },
+                      }));
+                    }
+                    setPreviewLoaded(true);
+                  }}
+                  className={`w-full h-full object-contain rounded-2xl bg-black/5 shadow-sm transition-opacity duration-300 ${
+                    previewLoaded ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+              </div>
             </div>
           </div>
         </div>

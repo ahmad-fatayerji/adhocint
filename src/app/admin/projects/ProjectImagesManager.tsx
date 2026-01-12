@@ -11,6 +11,7 @@ type ProjectImage = {
   contentType: string | null;
   bytes: string | null;
   url: string;
+  thumbUrl?: string;
 };
 
 export default function ProjectImagesManager({
@@ -27,6 +28,7 @@ export default function ProjectImagesManager({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [visibleCount, setVisibleCount] = useState(30); // Show 30 images at a time
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Drag state stored in refs to avoid re-renders during drag
@@ -74,6 +76,15 @@ export default function ProjectImagesManager({
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!previewUrl) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPreviewUrl(null);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [previewUrl]);
 
   const orderedIds = useMemo(() => images.map((x) => x.id), [images]);
   const visibleImages = useMemo(
@@ -220,10 +231,12 @@ export default function ProjectImagesManager({
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", String(idx));
     (e.currentTarget as HTMLElement).style.opacity = "0.4";
+    (e.currentTarget as HTMLElement).dataset.dragging = "1";
   }, []);
 
   const handleDragEnd = useCallback((e: React.DragEvent) => {
     (e.currentTarget as HTMLElement).style.opacity = "1";
+    delete (e.currentTarget as HTMLElement).dataset.dragging;
     // Clear all drop indicators
     gridRef.current?.querySelectorAll("[data-drop-indicator]").forEach((el) => {
       (el as HTMLElement).style.display = "none";
@@ -310,6 +323,10 @@ export default function ProjectImagesManager({
     const id = getIdFromEvent(e);
     if (!id) return;
     setCoverId((prev) => (prev === id ? null : id));
+  }, []);
+
+  const handleOpenPreview = useCallback((url: string) => {
+    setPreviewUrl(url);
   }, []);
 
   return (
@@ -441,12 +458,14 @@ export default function ProjectImagesManager({
               <ImageTile
                 key={img.id}
                 id={img.id}
-                url={img.url}
+                fullUrl={img.url}
+                thumbUrl={img.thumbUrl || img.url}
                 idx={idx}
                 isSelected={selectedIds.has(img.id)}
                 isCover={coverId === img.id}
                 onToggleSelect={handleToggleSelect}
                 onSetCover={handleSetCover}
+                onOpenPreview={handleOpenPreview}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
@@ -482,33 +501,71 @@ export default function ProjectImagesManager({
           )}
         </>
       )}
+
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setPreviewUrl(null)}
+        >
+          <div
+            className="relative w-full max-w-5xl rounded-2xl bg-white shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewUrl(null)}
+              className="absolute right-3 top-3 inline-flex items-center justify-center rounded-full bg-black/70 text-white w-9 h-9 hover:bg-black/80 transition"
+              aria-label="Close preview"
+            >
+              ✕
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewUrl}
+              alt=""
+              className="w-full h-auto max-h-[80vh] object-contain bg-black/5"
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+        </div>
+      )}
     </section>
   );
 }
 
 const ImageTile = memo(function ImageTile({
   id,
-  url,
+  fullUrl,
+  thumbUrl,
   idx,
   isSelected,
   isCover,
   onToggleSelect,
   onSetCover,
+  onOpenPreview,
   onDragStart,
   onDragEnd,
   onDragOver,
 }: {
   id: string;
-  url: string;
+  fullUrl: string;
+  thumbUrl: string;
   idx: number;
   isSelected: boolean;
   isCover: boolean;
   onToggleSelect: (e: React.MouseEvent) => void;
   onSetCover: (e: React.MouseEvent) => void;
+  onOpenPreview: (url: string) => void;
   onDragStart: (e: React.DragEvent) => void;
   onDragEnd: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
 }) {
+  const handleTileClick = (e: React.MouseEvent) => {
+    if ((e.currentTarget as HTMLElement).dataset.dragging === "1") return;
+    onToggleSelect(e);
+  };
+
   return (
     <div className="relative">
       {/* Drop indicator - hidden by default, shown via JS */}
@@ -525,6 +582,7 @@ const ImageTile = memo(function ImageTile({
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
+        onClick={handleTileClick}
         className={`
           relative aspect-square rounded-lg overflow-hidden cursor-grab active:cursor-grabbing
           border-2 transition-colors
@@ -535,12 +593,11 @@ const ImageTile = memo(function ImageTile({
           }
           group
         `}
-        onClick={onToggleSelect}
         style={{ contentVisibility: "auto", containIntrinsicSize: "200px 200px" }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={url}
+          src={thumbUrl}
           alt=""
           loading="lazy"
           decoding="async"
@@ -554,13 +611,20 @@ const ImageTile = memo(function ImageTile({
         </div>
 
         {/* Selection checkbox */}
-        <div
-          className={`absolute top-2 left-2 w-5 h-5 rounded border-2 flex items-center justify-center pointer-events-none
+        <button
+          type="button"
+          data-id={id}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect(e);
+          }}
+          className={`absolute top-2 left-2 w-5 h-5 rounded border-2 flex items-center justify-center
             ${
               isSelected
                 ? "bg-[var(--brand-blue)] border-[var(--brand-blue)]"
                 : "bg-white/80 border-black/20 opacity-0 group-hover:opacity-100"
             }`}
+          aria-label={isSelected ? "Unselect image" : "Select image"}
         >
           {isSelected && (
             <svg
@@ -575,7 +639,7 @@ const ImageTile = memo(function ImageTile({
               />
             </svg>
           )}
-        </div>
+        </button>
 
         {/* Cover badge */}
         <button
@@ -589,6 +653,18 @@ const ImageTile = memo(function ImageTile({
             }`}
         >
           {isCover ? "* Cover" : "Set cover"}
+        </button>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenPreview(fullUrl);
+          }}
+          className="absolute bottom-2 right-2 px-2 py-1 rounded text-xs font-medium bg-white/80 text-black/80 opacity-0 group-hover:opacity-100 hover:bg-white transition"
+          aria-label="Open full image"
+        >
+          View
         </button>
       </div>
     </div>

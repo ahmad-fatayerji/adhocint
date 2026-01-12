@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/auth/session";
 import { deleteObject, getObjectStream, putObject } from "@/lib/minio";
@@ -31,8 +32,35 @@ async function getObjectWithRetry(bucket: string, key: string, retries = 2) {
     throw lastError || new Error("Failed to get object");
 }
 
+function parsePositiveInt(value: string | null) {
+    if (!value) return null;
+    const n = Number.parseInt(value, 10);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return n;
+}
+
+function clamp(n: number, min: number, max: number) {
+    return Math.max(min, Math.min(max, n));
+}
+
+function pickFormat(acceptHeader: string | null, explicit?: string | null) {
+    const normalized = explicit?.toLowerCase().trim();
+    if (normalized === "avif" || normalized === "webp" || normalized === "jpeg" || normalized === "jpg" || normalized === "png") {
+        return normalized === "jpg" ? "jpeg" : normalized;
+    }
+    const accept = acceptHeader?.toLowerCase() || "";
+    if (accept.includes("image/avif")) return "avif";
+    if (accept.includes("image/webp")) return "webp";
+    return "jpeg";
+}
+
+async function streamToBuffer(stream: ReadableStream<Uint8Array>) {
+    const arrayBuffer = await new Response(stream).arrayBuffer();
+    return Buffer.from(arrayBuffer);
+}
+
 export async function GET(
-    _req: Request,
+    req: Request,
     { params }: { params: Promise<{ id: string; imageId: string }> }
 ) {
     const session = await getAdminSession();
@@ -55,6 +83,46 @@ export async function GET(
 
         const obj = await getObjectWithRetry(bucket, img.objectKey);
         if (!obj) return NextResponse.json({ ok: false, error: "Object not in storage" }, { status: 404 });
+
+        const url = new URL(req.url);
+        const requestedWidth = parsePositiveInt(url.searchParams.get("w"));
+        const requestedHeight = parsePositiveInt(url.searchParams.get("h"));
+        const requestedFormat = url.searchParams.get("format");
+        const isThumb = Boolean(requestedWidth || requestedHeight || requestedFormat);
+
+        if (isThumb) {
+            const width = clamp(requestedWidth ?? requestedHeight ?? 320, 64, 2048);
+            const height = clamp(requestedHeight ?? requestedWidth ?? 320, 64, 2048);
+            const format = pickFormat(req.headers.get("accept"), requestedFormat);
+            const buffer = await streamToBuffer(obj.stream as ReadableStream<Uint8Array>);
+
+            let pipeline = sharp(buffer).resize({
+                width,
+                height,
+                fit: "cover",
+                withoutEnlargement: true,
+            });
+
+            if (format === "avif") {
+                pipeline = pipeline.avif({ quality: 50, effort: 4 });
+            } else if (format === "webp") {
+                pipeline = pipeline.webp({ quality: 72 });
+            } else if (format === "png") {
+                pipeline = pipeline.png({ compressionLevel: 8 });
+            } else {
+                pipeline = pipeline.jpeg({ quality: 75, mozjpeg: true });
+            }
+
+            const out = await pipeline.toBuffer();
+            return new NextResponse(out, {
+                status: 200,
+                headers: {
+                    "Content-Type": `image/${format}`,
+                    "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+                    "Vary": "Accept",
+                },
+            });
+        }
 
         const res = new NextResponse(obj.stream as ReadableStream, {
             status: 200,

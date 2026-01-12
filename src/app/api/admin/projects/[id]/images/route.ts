@@ -54,6 +54,7 @@ export async function GET(
                 contentType: img.contentType,
                 bytes: img.bytes ? img.bytes.toString() : null,
                 url: `/api/admin/projects/${projectId}/images/${img.id}`,
+                thumbUrl: `/api/admin/projects/${projectId}/images/${img.id}?w=320`,
             }))
         );
 

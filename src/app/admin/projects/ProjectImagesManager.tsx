@@ -725,14 +725,25 @@ const ImageTile = memo(function ImageTile({
         <button
           data-id={id}
           onClick={onSetCover}
-          className={`absolute top-2 right-2 px-2 py-0.5 rounded text-xs font-medium
+          className={`absolute top-2 right-2 inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium
             ${
               isCover
                 ? "bg-[var(--brand-brown)] text-white"
                 : "bg-black/50 text-white/80 opacity-0 group-hover:opacity-100 hover:bg-black/70"
             }`}
+          aria-label={isCover ? "Cover image" : "Set cover image"}
         >
-          {isCover ? "* Cover" : "Set cover"}
+          <svg
+            viewBox="0 0 24 24"
+            className="h-3.5 w-3.5"
+            fill={isCover ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth={1.6}
+            aria-hidden="true"
+          >
+            <path d="M12 3.5l2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17.5 6.6 20.3l1-6.1L3.2 9.9l6.1-.9L12 3.5z" />
+          </svg>
+          {isCover ? "Cover" : "Set cover"}
         </button>
 
         <button

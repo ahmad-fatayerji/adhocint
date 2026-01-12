@@ -1,4 +1,6 @@
 ﻿const { PrismaClient } = require("@prisma/client");
+const { PrismaPg } = require("@prisma/adapter-pg");
+const { Pool } = require("pg");
 const { S3Client, GetObjectCommand, PutObjectCommand } = require("@aws-sdk/client-s3");
 const sharp = require("sharp");
 const { Readable } = require("node:stream");
@@ -92,7 +94,9 @@ async function main() {
   const bucket = required("MINIO_BUCKET");
   const concurrency = Math.max(1, Number(process.env.THUMBS_CONCURRENCY || 2));
 
-  const prisma = new PrismaClient();
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaPg(pool);
+  const prisma = new PrismaClient({ adapter });
   const s3 = getS3Client();
 
   const images = await prisma.projectImage.findMany({
@@ -146,9 +150,11 @@ async function main() {
 
   console.log(`Done. Success: ${completed}, Failed: ${failures}`);
   await prisma.$disconnect();
+  await pool.end();
 }
 
 main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+

@@ -27,7 +27,10 @@ export async function GET() {
             client: p.category,
             year: p.year,
             description: p.description,
-            images: imgs.map((img) => `/api/public/project-images/${img.id}`),
+            images: imgs.map((img) => ({
+                fullUrl: `/api/public/project-images/${img.id}`,
+                thumbUrl: `/api/public/project-images/${img.id}?w=720`,
+            })),
         };
     });
 

@@ -9,7 +9,7 @@ type PublicProject = {
   client: string;
   year: number;
   description: string;
-  images: string[];
+  images: { fullUrl: string; thumbUrl: string }[];
 };
 
 // Individual project card with visibility-based loading
@@ -30,6 +30,8 @@ function ProjectCard({
 
   const images = project.images || [];
   const current = images[index];
+  const currentThumb = current?.thumbUrl;
+  const currentFull = current?.fullUrl;
 
   // Intersection Observer for lazy loading
   useEffect(() => {
@@ -148,7 +150,7 @@ function ProjectCard({
         {isVisible ? (
           <AnimatePresence mode="wait" initial={false} custom={direction}>
             <motion.div
-              key={current}
+              key={currentFull || "empty"}
               custom={direction}
               initial="enter"
               animate="center"
@@ -171,7 +173,7 @@ function ProjectCard({
               }}
               className="absolute inset-0"
             >
-              {current ? (
+              {currentThumb ? (
                 <>
                   {/* Placeholder while loading */}
                   {!imageLoaded && (
@@ -179,7 +181,7 @@ function ProjectCard({
                   )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={current}
+                    src={currentThumb}
                     alt={project.title}
                     loading="eager"
                     decoding="async"
@@ -296,17 +298,17 @@ function ProjectCard({
 
       {isPreviewOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
           onClick={() => setIsPreviewOpen(false)}
         >
           <div
-            className="relative w-full max-w-5xl rounded-2xl bg-white shadow-2xl overflow-hidden"
+            className="relative w-full max-w-6xl rounded-3xl bg-white/95 shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/10 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setIsPreviewOpen(false)}
-              className="absolute right-3 top-3 z-10 inline-flex items-center justify-center rounded-full bg-white/90 text-black/70 w-9 h-9 hover:bg-white shadow-sm ring-1 ring-black/10 transition"
+              className="absolute right-4 top-4 z-10 inline-flex items-center justify-center rounded-full bg-white/90 text-black/70 w-9 h-9 hover:bg-white shadow-sm ring-1 ring-black/10 transition"
               aria-label="Close gallery"
             >
               <svg
@@ -322,18 +324,18 @@ function ProjectCard({
                 <path d="M6 6l8 8M14 6l-8 8" />
               </svg>
             </button>
-            <div className="relative bg-black/5">
-              {current ? (
+            <div className="relative p-4 sm:p-6 bg-gradient-to-b from-white to-white/95">
+              {currentFull ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={current}
+                  src={currentFull}
                   alt={project.title}
-                  className="w-full h-auto max-h-[80vh] object-contain"
+                  className="w-full h-auto max-h-[80vh] object-contain rounded-2xl bg-black/5 shadow-sm"
                   loading="eager"
                   decoding="async"
                 />
               ) : (
-                <div className="w-full h-[50vh]" />
+                <div className="w-full h-[50vh] rounded-2xl bg-black/5" />
               )}
               {images.length > 1 && (
                 <>

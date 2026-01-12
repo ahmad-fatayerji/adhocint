@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { memo, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Button from "@/components/ui/button";
 
 type ProjectImage = {
@@ -75,8 +75,11 @@ export default function ProjectImagesManager({
     refresh();
   }, [refresh]);
 
-  const orderedIds = images.map((x) => x.id);
-  const visibleImages = images.slice(0, visibleCount);
+  const orderedIds = useMemo(() => images.map((x) => x.id), [images]);
+  const visibleImages = useMemo(
+    () => images.slice(0, visibleCount),
+    [images, visibleCount]
+  );
   const hasMoreImages = visibleCount < images.length;
 
   const hasChanges =
@@ -184,45 +187,57 @@ export default function ProjectImagesManager({
     await refresh();
   }
 
-  function toggleSelect(id: string) {
+  const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }
+  }, []);
 
-  function selectAll() {
+  const selectAll = useCallback(() => {
     if (selectedIds.size === images.length) {
       setSelectedIds(new Set());
     } else {
       setSelectedIds(new Set(images.map((x) => x.id)));
     }
-  }
+  }, [images, selectedIds.size]);
+
+  const getIdxFromEvent = (e: React.DragEvent | React.MouseEvent) => {
+    const value = (e.currentTarget as HTMLElement).dataset.idx;
+    return value ? Number(value) : -1;
+  };
+
+  const getIdFromEvent = (e: React.MouseEvent) =>
+    (e.currentTarget as HTMLElement).dataset.id || "";
 
   // Drag handlers using refs to minimize re-renders
-  function handleDragStart(e: React.DragEvent, idx: number) {
+  const handleDragStart = useCallback((e: React.DragEvent) => {
+    const idx = getIdxFromEvent(e);
+    if (idx < 0) return;
     dragState.current.draggedIdx = idx;
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", String(idx));
     (e.currentTarget as HTMLElement).style.opacity = "0.4";
-  }
+  }, []);
 
-  function handleDragEnd(e: React.DragEvent) {
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
     (e.currentTarget as HTMLElement).style.opacity = "1";
     // Clear all drop indicators
     gridRef.current?.querySelectorAll("[data-drop-indicator]").forEach((el) => {
       (el as HTMLElement).style.display = "none";
     });
     dragState.current = { draggedIdx: null, dropIdx: null };
-  }
+  }, []);
 
-  function handleDragOver(e: React.DragEvent, idx: number) {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     if (hasFileTransfer(e)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
 
+    const idx = getIdxFromEvent(e);
+    if (idx < 0) return;
     const { draggedIdx } = dragState.current;
     if (draggedIdx === null || idx === draggedIdx) return;
 
@@ -240,9 +255,9 @@ export default function ProjectImagesManager({
             i === insertIdx ? "block" : "none";
         });
     }
-  }
+  }, []);
 
-  function handleDrop(e: React.DragEvent) {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     if (hasFileTransfer(e) && e.dataTransfer?.files?.length) {
       setIsDraggingFiles(false);
@@ -263,9 +278,9 @@ export default function ProjectImagesManager({
       copy.splice(adjustedIdx, 0, item);
       return copy.map((x, i) => ({ ...x, sortOrder: i }));
     });
-  }
+  }, []);
 
-  function handleGridDragOver(e: React.DragEvent) {
+  const handleGridDragOver = useCallback((e: React.DragEvent) => {
     if (hasFileTransfer(e)) {
       e.preventDefault();
       e.dataTransfer.dropEffect = "copy";
@@ -273,13 +288,29 @@ export default function ProjectImagesManager({
       return;
     }
     e.preventDefault();
-  }
+  }, [isDraggingFiles]);
 
-  function handleGridDragLeave(e: React.DragEvent) {
+  const handleGridDragLeave = useCallback((e: React.DragEvent) => {
     if (e.currentTarget === e.target) {
       setIsDraggingFiles(false);
     }
-  }
+  }, []);
+
+  const handleToggleSelect = useCallback(
+    (e: React.MouseEvent) => {
+      const id = getIdFromEvent(e);
+      if (!id) return;
+      toggleSelect(id);
+    },
+    [toggleSelect]
+  );
+
+  const handleSetCover = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const id = getIdFromEvent(e);
+    if (!id) return;
+    setCoverId((prev) => (prev === id ? null : id));
+  }, []);
 
   return (
     <section className="mt-10">
@@ -287,7 +318,7 @@ export default function ProjectImagesManager({
         <div>
           <h2 className="text-xl font-bold">Images</h2>
           <p className="mt-1 text-sm text-black/60">
-            Drag to reorder • Click to select • Click star to set cover
+            Drag to reorder - Click to select - Click star to set cover
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -406,94 +437,21 @@ export default function ProjectImagesManager({
             onDragLeave={handleGridDragLeave}
             onDrop={handleDrop}
           >
-            {visibleImages.map((img, idx) => {
-              const isSelected = selectedIds.has(img.id);
-              const isCover = coverId === img.id;
-
-              return (
-                <div key={img.id} className="relative">
-                  {/* Drop indicator - hidden by default, shown via JS */}
-                  <div
-                    data-drop-indicator
-                    className="absolute -left-1.5 top-0 bottom-0 w-1 bg-[var(--brand-blue)] rounded-full z-10"
-                    style={{ display: "none" }}
-                  />
-
-                  <div
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, idx)}
-                    onDragEnd={handleDragEnd}
-                    onDragOver={(e) => handleDragOver(e, idx)}
-                    className={`
-                    relative aspect-square rounded-lg overflow-hidden cursor-grab active:cursor-grabbing
-                    border-2 transition-colors
-                    ${
-                      isSelected
-                        ? "border-[var(--brand-blue)] ring-2 ring-[var(--brand-blue)]/30"
-                        : "border-transparent hover:border-black/20"
-                    }
-                    group
-                  `}
-                    onClick={() => toggleSelect(img.id)}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={img.url}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover bg-black/5"
-                      draggable={false}
-                    />
-
-                    {/* Order number */}
-                    <div className="absolute bottom-2 left-2 w-6 h-6 rounded-full bg-black/60 text-white text-xs font-medium flex items-center justify-center pointer-events-none">
-                      {idx + 1}
-                    </div>
-
-                    {/* Selection checkbox */}
-                    <div
-                      className={`absolute top-2 left-2 w-5 h-5 rounded border-2 flex items-center justify-center pointer-events-none
-                      ${
-                        isSelected
-                          ? "bg-[var(--brand-blue)] border-[var(--brand-blue)]"
-                          : "bg-white/80 border-black/20 opacity-0 group-hover:opacity-100"
-                      }`}
-                    >
-                      {isSelected && (
-                        <svg
-                          className="w-3 h-3 text-white"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
-                    </div>
-
-                    {/* Cover badge */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCoverId(isCover ? null : img.id);
-                      }}
-                      className={`absolute top-2 right-2 px-2 py-0.5 rounded text-xs font-medium
-                      ${
-                        isCover
-                          ? "bg-[var(--brand-brown)] text-white"
-                          : "bg-black/50 text-white/80 opacity-0 group-hover:opacity-100 hover:bg-black/70"
-                      }`}
-                    >
-                      {isCover ? "★ Cover" : "Set cover"}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            {visibleImages.map((img, idx) => (
+              <ImageTile
+                key={img.id}
+                id={img.id}
+                url={img.url}
+                idx={idx}
+                isSelected={selectedIds.has(img.id)}
+                isCover={coverId === img.id}
+                onToggleSelect={handleToggleSelect}
+                onSetCover={handleSetCover}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragOver={handleDragOver}
+              />
+            ))}
             {/* Final drop indicator for dropping at the end */}
             <div
               data-drop-indicator
@@ -527,3 +485,112 @@ export default function ProjectImagesManager({
     </section>
   );
 }
+
+const ImageTile = memo(function ImageTile({
+  id,
+  url,
+  idx,
+  isSelected,
+  isCover,
+  onToggleSelect,
+  onSetCover,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+}: {
+  id: string;
+  url: string;
+  idx: number;
+  isSelected: boolean;
+  isCover: boolean;
+  onToggleSelect: (e: React.MouseEvent) => void;
+  onSetCover: (e: React.MouseEvent) => void;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragEnd: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+}) {
+  return (
+    <div className="relative">
+      {/* Drop indicator - hidden by default, shown via JS */}
+      <div
+        data-drop-indicator
+        className="absolute -left-1.5 top-0 bottom-0 w-1 bg-[var(--brand-blue)] rounded-full z-10"
+        style={{ display: "none" }}
+      />
+
+      <div
+        draggable
+        data-idx={idx}
+        data-id={id}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onDragOver={onDragOver}
+        className={`
+          relative aspect-square rounded-lg overflow-hidden cursor-grab active:cursor-grabbing
+          border-2 transition-colors
+          ${
+            isSelected
+              ? "border-[var(--brand-blue)] ring-2 ring-[var(--brand-blue)]/30"
+              : "border-transparent hover:border-black/20"
+          }
+          group
+        `}
+        onClick={onToggleSelect}
+        style={{ contentVisibility: "auto", containIntrinsicSize: "200px 200px" }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="w-full h-full object-cover bg-black/5"
+          draggable={false}
+        />
+
+        {/* Order number */}
+        <div className="absolute bottom-2 left-2 w-6 h-6 rounded-full bg-black/60 text-white text-xs font-medium flex items-center justify-center pointer-events-none">
+          {idx + 1}
+        </div>
+
+        {/* Selection checkbox */}
+        <div
+          className={`absolute top-2 left-2 w-5 h-5 rounded border-2 flex items-center justify-center pointer-events-none
+            ${
+              isSelected
+                ? "bg-[var(--brand-blue)] border-[var(--brand-blue)]"
+                : "bg-white/80 border-black/20 opacity-0 group-hover:opacity-100"
+            }`}
+        >
+          {isSelected && (
+            <svg
+              className="w-3 h-3 text-white"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          )}
+        </div>
+
+        {/* Cover badge */}
+        <button
+          data-id={id}
+          onClick={onSetCover}
+          className={`absolute top-2 right-2 px-2 py-0.5 rounded text-xs font-medium
+            ${
+              isCover
+                ? "bg-[var(--brand-brown)] text-white"
+                : "bg-black/50 text-white/80 opacity-0 group-hover:opacity-100 hover:bg-black/70"
+            }`}
+        >
+          {isCover ? "* Cover" : "Set cover"}
+        </button>
+      </div>
+    </div>
+  );
+});

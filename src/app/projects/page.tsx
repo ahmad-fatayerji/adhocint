@@ -187,38 +187,14 @@ function ProjectCard({
                   />
                 </>
               ) : (
-                <div className="absolute inset-0 bg-black/5" />
+                <div className="absolute inset-0 bg-black/5 skeleton-shimmer" />
               )}
             </motion.div>
           </AnimatePresence>
         ) : (
-          <div className="absolute inset-0 bg-black/5" />
+          <div className="absolute inset-0 bg-black/5 skeleton-shimmer" />
         )}
 
-        {images.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-            {images.slice(0, 8).map((_, i) => (
-              <button
-                key={i}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  selectIndex(i);
-                }}
-                aria-label={`Show image ${i + 1}`}
-                className={`h-2 w-2 rounded-full border border-[var(--brand-blue)]/40 transition ${
-                  i === index
-                    ? "bg-[var(--brand-blue)]"
-                    : "bg-[var(--brand-blue)]/20 hover:bg-[var(--brand-blue)]/40"
-                }`}
-              />
-            ))}
-            {images.length > 8 && (
-              <span className="ml-1 text-[10px] text-black/60">
-                +{images.length - 8}
-              </span>
-            )}
-          </div>
-        )}
         <button
           type="button"
           onClick={(e) => {
@@ -233,7 +209,7 @@ function ProjectCard({
       </div>
 
       <div className="p-6 flex flex-col gap-3 flex-1">
-        <h3 className="font-semibold text-lg leading-tight text-[var(--brand-blue)]">
+        <h3 className="font-semibold text-lg leading-tight text-[var(--brand-blue)] break-words">
           {project.title}
         </h3>
         <p className="text-xs uppercase tracking-wide text-black/60">

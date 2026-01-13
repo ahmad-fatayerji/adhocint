@@ -46,9 +46,9 @@ export default async function ProjectDetailsPage({
   return (
     <main className="section pt-10">
       <div className="container mx-auto px-4 max-w-6xl">
-        <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="hero-title font-bold text-[var(--brand-blue)] mb-2">
+            <h1 className="text-[clamp(2rem,5vw,3.25rem)] font-bold text-[var(--brand-blue)] mb-2 break-words leading-tight">
               {project.title}
             </h1>
             <p className="text-xs uppercase tracking-wide text-black/60">
@@ -57,7 +57,7 @@ export default async function ProjectDetailsPage({
           </div>
           <Link
             href="/projects"
-            className="text-sm font-medium text-[var(--brand-blue)] nav-underline"
+            className="text-sm font-medium text-[var(--brand-blue)] nav-underline self-start sm:self-auto"
           >
             Back to projects
           </Link>

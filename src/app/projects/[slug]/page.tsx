@@ -46,7 +46,7 @@ export default async function ProjectDetailsPage({
   return (
     <main className="section pt-10">
       <div className="container mx-auto px-4 max-w-6xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
           <div>
             <h1 className="text-[clamp(2rem,5vw,3.25rem)] font-bold text-[var(--brand-blue)] mb-2 break-words leading-tight">
               {project.title}
@@ -57,7 +57,7 @@ export default async function ProjectDetailsPage({
           </div>
           <Link
             href="/projects"
-            className="text-sm font-medium text-[var(--brand-blue)] nav-underline self-start sm:self-auto"
+            className="inline-flex items-center justify-center rounded-full border border-[color-mix(in_oklab,var(--brand-blue)_40%,transparent)] px-4 py-2 text-sm font-semibold text-[var(--brand-blue)] shadow-sm transition hover:border-[color-mix(in_oklab,var(--brand-blue)_65%,transparent)] hover:bg-[color-mix(in_oklab,var(--brand-blue)_8%,transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-blue)] self-start sm:self-start whitespace-nowrap"
           >
             Back to projects
           </Link>

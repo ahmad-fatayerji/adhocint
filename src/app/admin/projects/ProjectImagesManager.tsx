@@ -282,6 +282,11 @@ const ProjectImagesManager = forwardRef<ProjectImagesManagerHandle, {
         setUploadLabel(`Uploading ${index} of ${files.length}: ${file.name}`);
         let createdId: string | undefined;
         try {
+          const ext = file.name.split(".").pop()?.toLowerCase() || "";
+          const inferredType =
+            !file.type && (ext === "heic" || ext === "heif")
+              ? "image/heic"
+              : file.type;
           const createRes = await fetch(
             `/api/admin/projects/${projectId}/images`,
             {
@@ -289,7 +294,7 @@ const ProjectImagesManager = forwardRef<ProjectImagesManagerHandle, {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 filename: file.name,
-                contentType: file.type || "application/octet-stream",
+                contentType: inferredType || "application/octet-stream",
                 bytes: file.size,
               }),
             }

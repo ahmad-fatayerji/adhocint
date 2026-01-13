@@ -230,23 +230,41 @@ export async function PUT(
         });
         if (!img) return NextResponse.json({ ok: false }, { status: 404 });
 
+        let uploadBytes = bytes;
+        let uploadType = contentType || img.contentType || undefined;
+        if (uploadType === "image/heic" || uploadType === "image/heif") {
+            try {
+                const converted = await sharp(uploadBytes)
+                    .rotate()
+                    .jpeg({ quality: 90 })
+                    .toBuffer();
+                uploadBytes = converted;
+                uploadType = "image/jpeg";
+            } catch {
+                return NextResponse.json(
+                    { ok: false, error: "HEIC/HEIF is not supported on this server" },
+                    { status: 415 }
+                );
+            }
+        }
+
         await putObject({
             bucket,
             key: img.objectKey,
-            body: bytes,
-            contentType: contentType || img.contentType || undefined,
+            body: uploadBytes,
+            contentType: uploadType,
         });
 
         await prisma.projectImage.update({
             where: { id: img.id },
             data: {
-                contentType: contentType || img.contentType,
-                bytes: BigInt(bytes.byteLength),
+                contentType: uploadType || img.contentType,
+                bytes: BigInt(uploadBytes.byteLength),
             },
         });
 
         try {
-            await sharp(bytes).metadata();
+            await sharp(uploadBytes).metadata();
         } catch {
             return NextResponse.json(
                 { ok: false, error: "Unsupported image format" },
@@ -257,7 +275,7 @@ export async function PUT(
         await uploadThumbs({
             bucket,
             objectKey: img.objectKey,
-            bytes,
+            bytes: uploadBytes,
         });
 
         return NextResponse.json({ ok: true }, { status: 200 });

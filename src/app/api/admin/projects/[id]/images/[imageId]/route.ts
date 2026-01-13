@@ -211,6 +211,18 @@ export async function PUT(
 
     const contentType = req.headers.get("content-type") || undefined;
     const bytes = new Uint8Array(await req.arrayBuffer());
+    if (bytes.byteLength === 0) {
+        return NextResponse.json(
+            { ok: false, error: "Empty upload" },
+            { status: 400 }
+        );
+    }
+    if (contentType && !contentType.startsWith("image/")) {
+        return NextResponse.json(
+            { ok: false, error: "Unsupported image format" },
+            { status: 415 }
+        );
+    }
 
     try {
         const img = await prisma.projectImage.findFirst({
@@ -233,6 +245,15 @@ export async function PUT(
             },
         });
 
+        try {
+            await sharp(bytes).metadata();
+        } catch {
+            return NextResponse.json(
+                { ok: false, error: "Unsupported image format" },
+                { status: 415 }
+            );
+        }
+
         await uploadThumbs({
             bucket,
             objectKey: img.objectKey,
@@ -245,6 +266,12 @@ export async function PUT(
             return NextResponse.json(
                 { ok: false, error: "Database unavailable" },
                 { status: 503 }
+            );
+        }
+        if (typeof e?.message === "string") {
+            return NextResponse.json(
+                { ok: false, error: e.message },
+                { status: 400 }
             );
         }
         return NextResponse.json(

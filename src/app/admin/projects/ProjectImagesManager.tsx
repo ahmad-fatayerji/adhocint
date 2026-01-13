@@ -243,8 +243,20 @@ const ProjectImagesManager = forwardRef<ProjectImagesManagerHandle, {
         if (event.lengthComputable) onProgress(event.loaded);
       };
       xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) resolve();
-        else reject(new Error(`Upload failed (HTTP ${xhr.status})`));
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+          return;
+        }
+        let message = `Upload failed (HTTP ${xhr.status})`;
+        if (xhr.responseText) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (typeof data?.error === "string") message = data.error;
+          } catch {
+            // Ignore parse errors and use default message.
+          }
+        }
+        reject(new Error(message));
       };
       xhr.onerror = () => reject(new Error("Upload failed"));
       xhr.send(file);
@@ -288,10 +300,11 @@ const ProjectImagesManager = forwardRef<ProjectImagesManagerHandle, {
           }
 
           const uploadUrl: string = createData.uploadUrl;
-          createdId = createData?.image?.id;
-          if (createdId) {
+          const id = createData?.image?.id;
+          if (typeof id === "string") {
+            createdId = id;
             setPendingUploadIds((prev) =>
-              prev.includes(createdId) ? prev : [...prev, createdId]
+              prev.includes(id) ? prev : [...prev, id]
             );
           }
           await uploadWithProgress(uploadUrl, file, (loaded) => {

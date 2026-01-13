@@ -200,8 +200,8 @@ section[id] {
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(800px circle at 15% 10%, rgba(57, 96, 173, 0.18), transparent 55%),
-    radial-gradient(650px circle at 85% 20%, rgba(149, 131, 73, 0.18), transparent 60%),
+    radial-gradient(900px circle at 15% 10%, rgba(57, 96, 173, 0.32), transparent 55%),
+    radial-gradient(760px circle at 85% 20%, rgba(149, 131, 73, 0.32), transparent 60%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(247, 247, 247, 0.92)),
     repeating-linear-gradient(
       90deg,
@@ -217,6 +217,20 @@ section[id] {
       transparent 1px,
       transparent 110px
     );
+  background-size:
+    140% 140%,
+    150% 150%,
+    100% 100%,
+    110px 110px,
+    110px 110px;
+  background-position:
+    0% 0%,
+    100% 0%,
+    0% 0%,
+    0 0,
+    0 0;
+  will-change: background-position, background-size;
+  animation: nf-color-shift 8s ease-in-out infinite;
   z-index: -2;
 }
 
@@ -267,4 +281,49 @@ section[id] {
 
 .notfound-fade {
   animation: nf-fade-up 0.8s ease both;
+}
+
+@keyframes nf-color-shift {
+  0% {
+    background-position:
+      10% 10%,
+      90% 12%,
+      0% 0%,
+      0 0,
+      0 0;
+    background-size:
+      140% 140%,
+      150% 150%,
+      100% 100%,
+      110px 110px,
+      110px 110px;
+  }
+  50% {
+    background-position:
+      35% 55%,
+      65% 35%,
+      0% 0%,
+      0 0,
+      0 0;
+    background-size:
+      220% 220%,
+      200% 200%,
+      100% 100%,
+      110px 110px,
+      110px 110px;
+  }
+  100% {
+    background-position:
+      10% 10%,
+      90% 12%,
+      0% 0%,
+      0 0,
+      0 0;
+    background-size:
+      140% 140%,
+      150% 150%,
+      100% 100%,
+      110px 110px,
+      110px 110px;
+  }
 }

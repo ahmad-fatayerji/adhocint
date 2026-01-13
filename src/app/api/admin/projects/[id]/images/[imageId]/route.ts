@@ -238,7 +238,7 @@ export async function PUT(
                     .rotate()
                     .jpeg({ quality: 90 })
                     .toBuffer();
-                uploadBytes = converted;
+                uploadBytes = new Uint8Array(converted);
                 uploadType = "image/jpeg";
             } catch {
                 return NextResponse.json(

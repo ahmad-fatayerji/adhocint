@@ -33,11 +33,17 @@ export default function ProjectGallery({
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [previewLoaded, setPreviewLoaded] = useState(false);
+  const [previewMeta, setPreviewMeta] = useState<
+    Record<string, { width: number; height: number; ratio: number }>
+  >({});
   const activeImage = activeIndex === null ? null : images[activeIndex];
-  const previewUrl = useMemo(() => {
-    if (!activeImage) return "";
-    return withQueries(activeImage.fullUrl, { w: 1280, h: 800 });
-  }, [activeImage]);
+  const previewUrl = useMemo(
+    () => (activeImage ? activeImage.fullUrl : ""),
+    [activeImage]
+  );
+  const previewRatio = previewUrl
+    ? previewMeta[previewUrl]?.ratio || 4 / 3
+    : 4 / 3;
 
   useEffect(() => {
     if (activeIndex === null) return;
@@ -59,20 +65,46 @@ export default function ProjectGallery({
     };
   }, [activeIndex]);
 
+  useEffect(() => {
+    if (!previewUrl) return;
+    setPreviewLoaded(false);
+    setPreviewMeta((prev) => {
+      if (prev[previewUrl]) return prev;
+      const img = new Image();
+      img.onload = () => {
+        const width = img.naturalWidth || 1;
+        const height = img.naturalHeight || 1;
+        setPreviewMeta((current) => {
+          if (current[previewUrl]) return current;
+          return {
+            ...current,
+            [previewUrl]: {
+              width,
+              height,
+              ratio: width / height,
+            },
+          };
+        });
+      };
+      img.src = previewUrl;
+      return prev;
+    });
+  }, [previewUrl]);
+
   return (
     <>
-      <div className="grid gap-4 sm:gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="columns-2 sm:columns-3 lg:columns-4 gap-4 sm:gap-5 [column-gap:1.25rem]">
         {images.map((img, i) => (
           <button
             key={`gallery-${i}`}
             type="button"
             onClick={() => setActiveIndex(i)}
-            className="group relative overflow-hidden rounded-2xl border border-black/10 bg-black/5 text-left"
+            className="group relative mb-4 sm:mb-5 w-full break-inside-avoid overflow-hidden rounded-2xl border border-black/10 bg-white text-left"
             aria-label={`Open ${title} image ${i + 1}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={img.thumbUrl || img.fullUrl}
+              src={img.fullUrl}
               alt={`${title} ${i + 1}`}
               loading="lazy"
               decoding="async"
@@ -92,7 +124,10 @@ export default function ProjectGallery({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-3 sm:p-6 bg-gradient-to-b from-white to-white/95">
-                <div className="relative w-full max-h-[80vh] aspect-[16/10]">
+                <div
+                  className="relative w-full max-h-[80vh]"
+                  style={{ aspectRatio: previewRatio }}
+                >
                   {!previewLoaded && (
                     <div className="absolute inset-0 rounded-2xl bg-black/5 skeleton-shimmer" />
                   )}
@@ -102,7 +137,24 @@ export default function ProjectGallery({
                     alt={`${title} full view`}
                     loading="eager"
                     decoding="async"
-                    onLoad={() => setPreviewLoaded(true)}
+                    width={previewUrl ? previewMeta[previewUrl]?.width : undefined}
+                    height={previewUrl ? previewMeta[previewUrl]?.height : undefined}
+                    onLoad={(e) => {
+                      const target = e.currentTarget;
+                      const width = target.naturalWidth || 1;
+                      const height = target.naturalHeight || 1;
+                      if (previewUrl) {
+                        setPreviewMeta((prev) => ({
+                          ...prev,
+                          [previewUrl]: {
+                            width,
+                            height,
+                            ratio: width / height,
+                          },
+                        }));
+                      }
+                      setPreviewLoaded(true);
+                    }}
                     className={`w-full h-full object-contain rounded-2xl bg-black/5 shadow-sm transition-opacity duration-300 ${
                       previewLoaded ? "opacity-100" : "opacity-0"
                     }`}

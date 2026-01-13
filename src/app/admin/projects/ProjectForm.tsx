@@ -1,8 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/button";
+
+
 
 type Project = {
   id: string;
@@ -27,16 +35,37 @@ function slugify(input: string) {
     .replace(/^-|-$/g, "");
 }
 
-export default function ProjectForm({
-  mode,
-  initial,
-}: {
+export type ProjectFormHandle = {
+  save: () => Promise<boolean>;
+  hasChanges: () => boolean;
+  isBusy: () => boolean;
+};
+
+type ProjectFormProps = {
   mode: "create" | "edit";
   initial?: Project;
-}) {
+  formId?: string;
+  showSaveButton?: boolean;
+  showDeleteButton?: boolean;
+  redirectOnSave?: boolean;
+};
+
+const ProjectForm = forwardRef<ProjectFormHandle, ProjectFormProps>(
+  (
+    {
+      mode,
+      initial,
+      formId,
+      showSaveButton = true,
+      showDeleteButton = true,
+      redirectOnSave = true,
+    },
+    ref
+  ) => {
   const router = useRouter();
   const [status, setStatus] = useState<"idle" | "saving" | "deleting">("idle");
   const [error, setError] = useState<string>("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -65,9 +94,35 @@ export default function ProjectForm({
     [slug, title, location, year, category, description, published]
   );
 
-  async function onSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (status !== "idle") return;
+  const initialPayload = useMemo(() => {
+    if (!initial) {
+      return {
+        slug: "",
+        title: "",
+        location: DEFAULT_LOCATION,
+        year: new Date().getFullYear(),
+        category: "",
+        description: "",
+        published: true,
+      };
+    }
+    return {
+      slug: slugify(initial.slug || ""),
+      title: initial.title || "",
+      location: (initial.location || "").trim() || DEFAULT_LOCATION,
+      year: Number(initial.year),
+      category: initial.category || "",
+      description: initial.description || "",
+      published: Boolean(initial.published),
+    };
+  }, [initial]);
+
+  const hasChanges = useMemo(() => {
+    return JSON.stringify(payload) !== JSON.stringify(initialPayload);
+  }, [payload, initialPayload]);
+
+  const performSave = useCallback(async () => {
+    if (status !== "idle") return false;
     setStatus("saving");
     setError("");
 
@@ -87,24 +142,33 @@ export default function ProjectForm({
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.ok) {
         setError(data?.error || "Save failed");
-        return;
+        return false;
       }
 
-      if (mode === "create" && data?.project?.id) {
-        router.push(`/admin/projects/${data.project.id}`);
-      } else {
-        router.push("/admin/projects");
+      if (redirectOnSave) {
+        if (mode === "create" && data?.project?.id) {
+          router.push(`/admin/projects/${data.project.id}`);
+        } else {
+          router.push("/admin/projects");
+        }
+        router.refresh();
       }
-      router.refresh();
+      return true;
+    } catch (err) {
+      setError("Save failed");
+      return false;
     } finally {
       setStatus("idle");
     }
+  }, [status, mode, initial, payload, router, redirectOnSave]);
+
+  async function onSave(e: React.FormEvent) {
+    e.preventDefault();
+    await performSave();
   }
 
   async function onDelete() {
     if (!canDelete || status !== "idle") return;
-    if (!confirm("Delete this project?")) return;
-
     setStatus("deleting");
     setError("");
     try {
@@ -126,8 +190,24 @@ export default function ProjectForm({
 
   const showLocationField = false;
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      save: async () => (await performSave()) ?? false,
+      hasChanges: () => hasChanges,
+      isBusy: () => status !== "idle",
+    }),
+    [performSave, hasChanges, status]
+  );
+
+  const showActions = showSaveButton || (canDelete && showDeleteButton);
+
   return (
-    <form className="mt-6 grid gap-3" onSubmit={onSave}>
+    <form
+      id={formId}
+      className="mt-6 grid gap-3"
+      onSubmit={onSave}
+    >
       <div className="grid gap-1">
         <label className="text-sm text-black/70">Slug</label>
         <input
@@ -211,25 +291,61 @@ export default function ProjectForm({
 
       {error && <div className="text-sm text-red-700">{error}</div>}
 
-      <div className="flex items-center gap-3">
-        <Button disabled={status !== "idle"}>
-          {status === "saving"
-            ? "Saving..."
-            : mode === "create"
-            ? "Create"
-            : "Save"}
-        </Button>
-        {canDelete && (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={status !== "idle"}
-            onClick={onDelete}
-          >
-            {status === "deleting" ? "Deleting..." : "Delete"}
-          </Button>
-        )}
-      </div>
+      {showActions && (
+        <div className="flex items-center gap-3">
+          {showSaveButton && (
+            <Button disabled={status !== "idle"}>
+              {status === "saving"
+                ? "Saving..."
+                : mode === "create"
+                ? "Create"
+                : "Save"}
+            </Button>
+          )}
+          {canDelete && showDeleteButton && (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={status !== "idle"}
+              onClick={() => setConfirmDelete(true)}
+            >
+              {status === "deleting" ? "Deleting..." : "Delete"}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {confirmDelete && canDelete && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>Delete this project? This cannot be undone.</span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                className="bg-red-600 text-white hover:bg-red-700"
+                disabled={status !== "idle"}
+                onClick={async () => {
+                  setConfirmDelete(false);
+                  await onDelete();
+                }}
+              >
+                Confirm Delete
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setConfirmDelete(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
-}
+});
+
+export default ProjectForm;

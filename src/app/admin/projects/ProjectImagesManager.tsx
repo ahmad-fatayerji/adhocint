@@ -1,6 +1,15 @@
 ﻿"use client";
 
-import { memo, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import {
+  memo,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import Button from "@/components/ui/button";
 
 type ProjectImage = {
@@ -20,11 +29,21 @@ type ImageMeta = {
   ratio: number;
 };
 
-export default function ProjectImagesManager({
-  projectId,
-}: {
+type Toast = {
+  id: number;
+  tone: "info" | "success" | "error";
+  message: string;
+};
+
+export type ProjectImagesManagerHandle = {
+  save: () => Promise<boolean>;
+  hasChanges: () => boolean;
+  isBusy: () => boolean;
+};
+
+const ProjectImagesManager = forwardRef<ProjectImagesManagerHandle, {
   projectId: string;
-}) {
+}>(({ projectId }, ref) => {
   const [images, setImages] = useState<ProjectImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingOrder, setSavingOrder] = useState(false);
@@ -39,7 +58,16 @@ export default function ProjectImagesManager({
   const [previewMeta, setPreviewMeta] = useState<Record<string, ImageMeta>>(
     {}
   );
+  const [originalOrder, setOriginalOrder] = useState<string[]>([]);
+  const [originalCoverId, setOriginalCoverId] = useState<string | null>(null);
+  const [pendingUploadIds, setPendingUploadIds] = useState<string[]>([]);
+  const [uploadTotalBytes, setUploadTotalBytes] = useState(0);
+  const [uploadLoadedBytes, setUploadLoadedBytes] = useState(0);
+  const [uploadLabel, setUploadLabel] = useState("");
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingUploadsRef = useRef<string[]>([]);
 
   // Drag state stored in refs to avoid re-renders during drag
   const dragState = useRef<{
@@ -58,7 +86,15 @@ export default function ProjectImagesManager({
     return types.includes("Files") || (e.dataTransfer?.files?.length ?? 0) > 0;
   };
 
-  const refresh = useCallback(async () => {
+  const addToast = useCallback((message: string, tone: Toast["tone"] = "info") => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((prev) => [...prev, { id, tone, message }]);
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 4000);
+  }, []);
+
+  const refresh = useCallback(async (options?: { resetBaseline?: boolean }) => {
     setLoading(true);
     setError("");
     try {
@@ -68,6 +104,7 @@ export default function ProjectImagesManager({
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.ok) {
         setError(data?.error || "Failed to load images");
+        addToast(data?.error || "Failed to load images", "error");
         setImages([]);
         setCoverId(null);
         return;
@@ -75,13 +112,19 @@ export default function ProjectImagesManager({
       const next: ProjectImage[] = data.images || [];
       setImages(next);
       const cover = next.find((x) => x.isCover);
-      setCoverId(cover?.id ?? null);
+      const nextCoverId = cover?.id ?? null;
+      setCoverId(nextCoverId);
+      if (options?.resetBaseline !== false) {
+        setOriginalOrder(next.map((x) => x.id));
+        setOriginalCoverId(nextCoverId);
+        setPendingUploadIds([]);
+      }
       setSelectedIds(new Set());
       setVisibleCount(30); // Reset pagination on refresh
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [addToast, projectId]);
 
   useEffect(() => {
     refresh();
@@ -142,12 +185,13 @@ export default function ProjectImagesManager({
     (previewUrl && previewMeta[previewUrl]?.ratio) || 4 / 3;
 
   const hasChanges =
-    images.some((img, i) => img.sortOrder !== i) ||
-    (coverId && images.find((x) => x.id === coverId)?.isCover === false) ||
-    (!coverId && images.some((x) => x.isCover));
+    orderedIds.length !== originalOrder.length ||
+    orderedIds.some((id, i) => id !== originalOrder[i]) ||
+    (coverId ?? null) !== (originalCoverId ?? null) ||
+    pendingUploadIds.length > 0;
 
-  async function saveOrder() {
-    if (savingOrder) return;
+  async function saveImages() {
+    if (savingOrder) return false;
     setSavingOrder(true);
     setError("");
     try {
@@ -159,7 +203,8 @@ export default function ProjectImagesManager({
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.ok) {
         setError(data?.error || "Failed to save");
-        return;
+        addToast(data?.error || "Failed to save", "error");
+        return false;
       }
       setImages((prev) =>
         prev.map((img, i) => ({
@@ -168,9 +213,42 @@ export default function ProjectImagesManager({
           isCover: coverId ? img.id === coverId : false,
         }))
       );
+      setOriginalOrder(orderedIds);
+      setOriginalCoverId(coverId ?? null);
+      setPendingUploadIds([]);
+      addToast("Image changes saved.", "success");
+      return true;
+    } catch (err) {
+      setError("Failed to save");
+      addToast("Failed to save", "error");
+      return false;
     } finally {
       setSavingOrder(false);
     }
+  }
+
+  async function uploadWithProgress(
+    url: string,
+    file: File,
+    onProgress: (loaded: number) => void
+  ) {
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", url);
+      xhr.setRequestHeader(
+        "Content-Type",
+        file.type || "application/octet-stream"
+      );
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress(event.loaded);
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error(`Upload failed (HTTP ${xhr.status})`));
+      };
+      xhr.onerror = () => reject(new Error("Upload failed"));
+      xhr.send(file);
+    });
   }
 
   async function onUploadFiles(files: FileList | null) {
@@ -178,40 +256,78 @@ export default function ProjectImagesManager({
     if (uploading) return;
     setUploading(true);
     setError("");
+    const totalBytes = Array.from(files).reduce(
+      (sum, file) => sum + file.size,
+      0
+    );
+    setUploadTotalBytes(totalBytes);
+    setUploadLoadedBytes(0);
     try {
+      let completedBytes = 0;
+      let index = 0;
       for (const file of Array.from(files)) {
-        const createRes = await fetch(
-          `/api/admin/projects/${projectId}/images`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              filename: file.name,
-              contentType: file.type || "application/octet-stream",
-              bytes: file.size,
-            }),
+        index += 1;
+        setUploadLabel(`Uploading ${index} of ${files.length}: ${file.name}`);
+        let createdId: string | undefined;
+        try {
+          const createRes = await fetch(
+            `/api/admin/projects/${projectId}/images`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                filename: file.name,
+                contentType: file.type || "application/octet-stream",
+                bytes: file.size,
+              }),
+            }
+          );
+          const createData = await createRes.json().catch(() => null);
+          if (!createRes.ok || !createData?.ok) {
+            throw new Error(createData?.error || "Failed to prepare upload");
           }
-        );
-        const createData = await createRes.json().catch(() => null);
-        if (!createRes.ok || !createData?.ok) {
-          setError(createData?.error || "Failed to prepare upload");
-          return;
-        }
 
-        const uploadUrl: string = createData.uploadUrl;
-        const putRes = await fetch(uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": file.type || "application/octet-stream" },
-          body: file,
-        });
-        if (!putRes.ok) {
-          setError(`Upload failed for ${file.name}`);
-          return;
+          const uploadUrl: string = createData.uploadUrl;
+          createdId = createData?.image?.id;
+          if (createdId) {
+            setPendingUploadIds((prev) =>
+              prev.includes(createdId) ? prev : [...prev, createdId]
+            );
+          }
+          await uploadWithProgress(uploadUrl, file, (loaded) => {
+            setUploadLoadedBytes(completedBytes + loaded);
+          });
+          completedBytes += file.size;
+          setUploadLoadedBytes(completedBytes);
+        } catch (err) {
+          const message =
+            err instanceof Error
+              ? err.message
+              : `Upload failed for ${file.name}`;
+          setError(message);
+          addToast(message, "error");
+          if (createdId) {
+            fetch(`/api/admin/projects/${projectId}/images/${createdId}`, {
+              method: "DELETE",
+              keepalive: true,
+            }).catch(() => {});
+            setPendingUploadIds((prev) =>
+              prev.filter((id) => id !== createdId)
+            );
+          }
+          throw err;
         }
       }
-      await refresh();
+      await refresh({ resetBaseline: false });
+      addToast(
+        `Uploaded ${files.length} image(s). Click Save to keep them.`,
+        "info"
+      );
+    } catch {
+      // Errors are reported per-file; keep state for any successful uploads.
     } finally {
       setUploading(false);
+      setUploadLabel("");
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
@@ -225,19 +341,15 @@ export default function ProjectImagesManager({
     const data = await res.json().catch(() => null);
     if (!res.ok || !data?.ok) {
       setError(data?.error || "Failed to delete image");
+      addToast(data?.error || "Failed to delete image", "error");
       return false;
     }
+    setPendingUploadIds((prev) => prev.filter((id) => id !== imageId));
     return true;
   }
 
   async function deleteSelected() {
     if (selectedIds.size === 0) return;
-    if (
-      !confirm(
-        `Delete ${selectedIds.size} selected image(s)? This cannot be undone.`
-      )
-    )
-      return;
     setError("");
     for (const id of selectedIds) {
       const ok = await removeOne(id);
@@ -337,7 +449,7 @@ export default function ProjectImagesManager({
       const [item] = copy.splice(draggedIdx, 1);
       const adjustedIdx = dropIdx > draggedIdx ? dropIdx - 1 : dropIdx;
       copy.splice(adjustedIdx, 0, item);
-      return copy.map((x, i) => ({ ...x, sortOrder: i }));
+      return copy;
     });
   }, []);
 
@@ -378,6 +490,40 @@ export default function ProjectImagesManager({
     setPreviewUrl(url);
   }, []);
 
+  useEffect(() => {
+    pendingUploadsRef.current = pendingUploadIds;
+  }, [pendingUploadIds]);
+
+  useEffect(() => {
+    if (selectedIds.size === 0) setConfirmDelete(false);
+  }, [selectedIds.size]);
+
+  useEffect(() => {
+    return () => {
+      const ids = pendingUploadsRef.current;
+      if (ids.length === 0) return;
+      ids.forEach((id) => {
+        fetch(`/api/admin/projects/${projectId}/images/${id}`, {
+          method: "DELETE",
+          keepalive: true,
+        }).catch(() => {});
+      });
+    };
+  }, [projectId]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      save: async () => {
+        if (!hasChanges) return true;
+        return (await saveImages()) ?? false;
+      },
+      hasChanges: () => hasChanges,
+      isBusy: () => savingOrder || uploading,
+    }),
+    [hasChanges, savingOrder, uploading, saveImages]
+  );
+
   return (
     <section className="mt-10">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
@@ -387,63 +533,68 @@ export default function ProjectImagesManager({
             Drag to reorder - Click to select - Click star to set cover
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? "Uploading..." : "Upload Images"}
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => onUploadFiles(e.target.files)}
-          />
-          {selectedIds.size > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={deleteSelected}
-              className="text-red-600 border-red-200 hover:bg-red-50"
-            >
-              Delete ({selectedIds.size})
-            </Button>
-          )}
-          <Button
-            type="button"
-            size="sm"
-            disabled={savingOrder || uploading || !hasChanges}
-            onClick={saveOrder}
-          >
-            {savingOrder ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => onUploadFiles(e.target.files)}
+        />
       </div>
+
+      {toasts.length > 0 && (
+        <div className="fixed top-6 right-6 z-50 flex flex-col gap-2">
+          {toasts.map((toast) => (
+            <div
+              key={toast.id}
+              className={`rounded-lg border px-4 py-3 text-sm shadow-lg bg-white ${
+                toast.tone === "success"
+                  ? "border-emerald-200 text-emerald-700"
+                  : toast.tone === "error"
+                  ? "border-red-200 text-red-700"
+                  : "border-black/10 text-black/70"
+              }`}
+              role="status"
+              aria-live="polite"
+            >
+              {toast.message}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {uploading && (
+        <div className="mb-4 rounded-lg border border-black/10 bg-white px-4 py-3">
+          <div className="flex items-center justify-between text-xs text-black/60">
+            <span>{uploadLabel || "Uploading images..."}</span>
+            <span>
+              {uploadTotalBytes
+                ? `${Math.round(
+                    (uploadLoadedBytes / uploadTotalBytes) * 100
+                  )}%`
+                : "0%"}
+            </span>
+          </div>
+          <div className="mt-2 h-2 w-full rounded-full bg-black/10 overflow-hidden">
+            <div
+              className="h-full bg-[var(--brand-blue)] transition-[width] duration-200"
+              style={{
+                width: uploadTotalBytes
+                  ? `${Math.min(
+                      100,
+                      (uploadLoadedBytes / uploadTotalBytes) * 100
+                    )}%`
+                  : "0%",
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
           {error}
-        </div>
-      )}
-
-      {images.length > 0 && (
-        <div className="mb-3 flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-black/70 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={selectedIds.size === images.length && images.length > 0}
-              onChange={selectAll}
-              className="rounded"
-            />
-            Select all ({images.length})
-          </label>
         </div>
       )}
 
@@ -492,6 +643,97 @@ export default function ProjectImagesManager({
         </div>
       ) : (
         <>
+          <div
+            className={`mb-4 border-2 border-dashed rounded-xl px-4 py-6 text-center text-sm transition-colors ${
+              isDraggingFiles
+                ? "border-[var(--brand-blue)] bg-[var(--brand-blue)]/5"
+                : "border-black/10 bg-white"
+            }`}
+            onDragOver={handleGridDragOver}
+            onDragLeave={handleGridDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="text-black/40 mb-2">
+              <svg
+                className="w-10 h-10 mx-auto"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <p className="text-black/60">Drag & drop images here to upload.</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? "Uploading..." : "Upload Images"}
+            </Button>
+          </div>
+          {images.length > 0 && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <label className="flex items-center gap-2 text-sm text-black/70 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === images.length && images.length > 0}
+                  onChange={selectAll}
+                  className="rounded"
+                />
+                Select all ({images.length})
+              </label>
+              {selectedIds.size > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmDelete(true)}
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  Delete ({selectedIds.size})
+                </Button>
+              )}
+            </div>
+          )}
+          {confirmDelete && selectedIds.size > 0 && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>
+                  Delete {selectedIds.size} selected image(s)? This cannot be undone.
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="bg-red-600 text-white hover:bg-red-700"
+                    onClick={async () => {
+                      setConfirmDelete(false);
+                      await deleteSelected();
+                    }}
+                  >
+                    Confirm Delete
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setConfirmDelete(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
           <div
             ref={gridRef}
             className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 rounded-xl transition-colors ${
@@ -612,7 +854,9 @@ export default function ProjectImagesManager({
       )}
     </section>
   );
-}
+});
+
+export default ProjectImagesManager;
 
 const ImageTile = memo(function ImageTile({
   id,
@@ -761,4 +1005,3 @@ const ImageTile = memo(function ImageTile({
     </div>
   );
 });
-

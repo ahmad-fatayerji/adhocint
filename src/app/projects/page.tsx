@@ -42,13 +42,16 @@ function ProjectCard({
   const current = images[index];
   const currentThumb = current?.thumbUrl;
   const currentFull = current?.fullUrl;
+  const currentPreview = currentFull
+    ? withQueries(currentFull, { w: 1280, h: 800 })
+    : "";
   const currentSrcSet = currentFull
     ? buildSrcSet(currentFull, [480, 720, 960, 1280], 10 / 16)
     : "";
   const currentSizes =
     "(max-width: 639px) 100vw, (max-width: 1279px) 50vw, 33vw";
   const previewRatio =
-    (currentFull && previewMeta[currentFull]?.ratio) || 16 / 10;
+    (currentPreview && previewMeta[currentPreview]?.ratio) || 16 / 10;
 
   const preloadImageMeta = useCallback((url: string) => {
     if (!url) return;
@@ -96,9 +99,9 @@ function ProjectCard({
   }, [onVisible]);
 
   useEffect(() => {
-    if (!isVisible || !currentFull) return;
-    preloadImageMeta(currentFull);
-  }, [currentFull, isVisible, preloadImageMeta]);
+    if (!isVisible || !currentPreview) return;
+    preloadImageMeta(currentPreview);
+  }, [currentPreview, isVisible, preloadImageMeta]);
 
   function changeIndex(dir: 1 | -1) {
     if (images.length <= 1) return;
@@ -130,10 +133,10 @@ function ProjectCard({
   }, [isPreviewOpen, images.length]);
 
   useEffect(() => {
-    if (!isPreviewOpen || !currentFull) return;
+    if (!isPreviewOpen || !currentPreview) return;
     setPreviewLoaded(false);
-    preloadImageMeta(currentFull);
-  }, [currentFull, isPreviewOpen, preloadImageMeta]);
+    preloadImageMeta(currentPreview);
+  }, [currentPreview, isPreviewOpen, preloadImageMeta]);
 
   return (
     <div
@@ -382,7 +385,7 @@ function ProjectCard({
               </svg>
             </button>
             <div className="relative p-4 sm:p-6 bg-gradient-to-b from-white to-white/95">
-              {currentFull ? (
+              {currentPreview ? (
                 <div
                   className="relative w-full max-h-[80vh] min-h-[40vh]"
                   style={{ aspectRatio: previewRatio }}
@@ -392,19 +395,19 @@ function ProjectCard({
                   )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={currentFull}
+                    src={currentPreview}
                     alt={project.title}
                     loading="eager"
                     decoding="async"
-                    width={previewMeta[currentFull]?.width}
-                    height={previewMeta[currentFull]?.height}
+                    width={previewMeta[currentPreview]?.width}
+                    height={previewMeta[currentPreview]?.height}
                     onLoad={(e) => {
                       const target = e.currentTarget;
                       const width = target.naturalWidth || 1;
                       const height = target.naturalHeight || 1;
                       setPreviewMeta((prev) => ({
                         ...prev,
-                        [currentFull]: {
+                        [currentPreview]: {
                           width,
                           height,
                           ratio: width / height,

@@ -25,7 +25,7 @@ async function getObjectOptional(bucket: string, key: string) {
         return null;
     }
 }
-const PUBLIC_THUMB_WIDTHS = [480, 720, 960, 1280];
+const PUBLIC_THUMB_WIDTHS = [480, 720, 960, 1280, 1600, 1920];
 const PUBLIC_RATIO = 10 / 16;
 
 function parsePositiveInt(value: string | null) {
@@ -80,13 +80,10 @@ export async function GET(
 
         if (isThumb) {
             const width = clamp(requestedWidth ?? requestedHeight ?? 720, 120, 2048);
-            const height = clamp(
-                requestedHeight ?? Math.round(width * PUBLIC_RATIO),
-                120,
-                2048
-            );
             const normalizedWidth = closestWidth(width, PUBLIC_THUMB_WIDTHS);
-            const preset = `16x10_w${normalizedWidth}`;
+            const preset = requestedHeight
+                ? `16x10_w${normalizedWidth}`
+                : `w${normalizedWidth}`;
             const thumb = await getObjectOptional(
                 bucket,
                 thumbKey(image.objectKey, preset)
@@ -105,9 +102,7 @@ export async function GET(
                 if (thumb.etag) res.headers.set("ETag", String(thumb.etag));
                 return res;
             }
-            if (height) {
-                // Fall through to full image if thumbnail is not available yet.
-            }
+            // Fall through to full image if thumbnail is not available yet.
         }
 
         const res = new NextResponse(obj.stream as ReadableStream, {

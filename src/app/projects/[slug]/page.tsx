@@ -40,7 +40,7 @@ export default async function ProjectDetailsPage({
   const orderedImages = orderImages(project.images);
   const images = orderedImages.map((img) => ({
     fullUrl: `/api/public/project-images/${img.id}`,
-    thumbUrl: `/api/public/project-images/${img.id}?w=720&h=450`,
+    thumbUrl: `/api/public/project-images/${img.id}?w=720`,
   }));
 
   return (

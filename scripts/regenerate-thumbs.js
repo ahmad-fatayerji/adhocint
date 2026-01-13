@@ -5,7 +5,7 @@ const { S3Client, GetObjectCommand, PutObjectCommand } = require("@aws-sdk/clien
 const sharp = require("sharp");
 const { Readable } = require("node:stream");
 
-const PUBLIC_THUMB_WIDTHS = [480, 720, 960, 1280];
+const PUBLIC_THUMB_WIDTHS = [480, 720, 960, 1280, 1600, 1920];
 const ADMIN_THUMB_WIDTHS = [320];
 const PUBLIC_RATIO = 10 / 16;
 
@@ -72,6 +72,15 @@ async function uploadThumbs(client, bucket, objectKey, buffer) {
       .webp({ quality: 74 })
       .toBuffer();
     await putObject(client, bucket, thumbKey(objectKey, `sq_w${width}`), out, "image/webp");
+  }
+
+  for (const width of PUBLIC_THUMB_WIDTHS) {
+    const out = await base
+      .clone()
+      .resize({ width, withoutEnlargement: true })
+      .webp({ quality: 74 })
+      .toBuffer();
+    await putObject(client, bucket, thumbKey(objectKey, `w${width}`), out, "image/webp");
   }
 
   for (const width of PUBLIC_THUMB_WIDTHS) {

@@ -8,6 +8,14 @@ type GalleryImage = {
   thumbUrl: string;
 };
 
+const PREVIEW_WIDTHS = [960, 1280, 1600, 1920];
+
+function closestPreviewWidth(requested: number) {
+  return PREVIEW_WIDTHS.reduce((prev, curr) =>
+    Math.abs(curr - requested) < Math.abs(prev - requested) ? curr : prev
+  );
+}
+
 function withQueries(baseUrl: string, params: Record<string, number>) {
   try {
     const url = new URL(baseUrl, "http://local");
@@ -37,9 +45,20 @@ export default function ProjectGallery({
     Record<string, { width: number; height: number; ratio: number }>
   >({});
   const activeImage = activeIndex === null ? null : images[activeIndex];
+  const previewWidth = useMemo(() => {
+    if (typeof window === "undefined") {
+      return PREVIEW_WIDTHS[PREVIEW_WIDTHS.length - 1];
+    }
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const target = Math.round(window.innerWidth * dpr);
+    return closestPreviewWidth(target);
+  }, [activeIndex]);
   const previewUrl = useMemo(
-    () => (activeImage ? activeImage.fullUrl : ""),
-    [activeImage]
+    () =>
+      activeImage
+        ? withQueries(activeImage.fullUrl, { w: previewWidth })
+        : "",
+    [activeImage, previewWidth]
   );
   const previewRatio = previewUrl
     ? previewMeta[previewUrl]?.ratio || 4 / 3
@@ -104,7 +123,7 @@ export default function ProjectGallery({
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={img.fullUrl}
+              src={img.thumbUrl}
               alt={`${title} ${i + 1}`}
               loading="lazy"
               decoding="async"

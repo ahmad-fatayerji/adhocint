@@ -98,6 +98,16 @@ export default function ProjectImagesManager({
 
   useEffect(() => {
     if (!previewUrl) return;
+    const { style } = document.body;
+    const prev = style.overflow;
+    style.overflow = "hidden";
+    return () => {
+      style.overflow = prev;
+    };
+  }, [previewUrl]);
+
+  useEffect(() => {
+    if (!previewUrl) return;
     setPreviewLoaded(false);
     setPreviewMeta((prev) => {
       if (prev[previewUrl]) return prev;
@@ -543,35 +553,17 @@ export default function ProjectImagesManager({
 
       {previewUrl && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md p-3 sm:p-4"
           onClick={() => setPreviewUrl(null)}
         >
-          <div
-            className="relative w-full max-w-6xl rounded-3xl bg-white/95 shadow-[0_24px_80px_rgba(0,0,0,0.35)] ring-1 ring-black/10 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setPreviewUrl(null)}
-              className="absolute right-4 top-4 z-10 inline-flex items-center justify-center rounded-full bg-white/90 text-black/70 w-9 h-9 hover:bg-white shadow-sm ring-1 ring-black/10 transition"
-              aria-label="Close preview"
+          <div className="flex flex-col items-center gap-4">
+            <div
+              className="relative w-full max-w-6xl max-h-[90vh] rounded-3xl bg-white shadow-[0_24px_80px_rgba(0,0,0,0.25)] ring-1 ring-black/10 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
             >
-              <svg
-                viewBox="0 0 20 20"
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M6 6l8 8M14 6l-8 8" />
-              </svg>
-            </button>
-            <div className="p-4 sm:p-6 bg-gradient-to-b from-white to-white/95">
+              <div className="p-3 sm:p-6 bg-gradient-to-b from-white to-white/95">
               <div
-                className="relative w-full max-h-[80vh] min-h-[40vh]"
+                className="relative w-full max-h-[80vh]"
                 style={{ aspectRatio: previewRatio }}
               >
                 {!previewLoaded && (
@@ -607,6 +599,14 @@ export default function ProjectImagesManager({
                 />
               </div>
             </div>
+          </div>
+          <Button
+            type="button"
+            onClick={() => setPreviewUrl(null)}
+            variant="secondary"
+          >
+            Close
+          </Button>
           </div>
         </div>
       )}

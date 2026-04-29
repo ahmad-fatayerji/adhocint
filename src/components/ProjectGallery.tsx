@@ -6,8 +6,6 @@ import Button from "@/components/ui/button";
 type GalleryImage = {
   fullUrl: string;
   thumbUrl: string;
-  width?: number | null;
-  height?: number | null;
 };
 
 type ImageDimensions = {
@@ -39,7 +37,7 @@ function withQueries(baseUrl: string, params: Record<string, number>) {
   }
 }
 
-function getValidDimensions(width?: number | null, height?: number | null) {
+function getValidDimensions(width: number, height: number) {
   return width && height && width > 0 && height > 0
     ? { width, height }
     : null;
@@ -65,18 +63,14 @@ export default function ProjectGallery({
   );
   const activeImage = activeIndex === null ? null : images[activeIndex];
   const tileDimensions = useMemo(
-    () =>
-      images.map(
-        (img) =>
-          getValidDimensions(img.width, img.height) ?? thumbMeta[img.thumbUrl]
-      ),
+    () => images.map((img) => thumbMeta[img.thumbUrl]),
     [images, thumbMeta]
   );
   const isLayoutReady = tileDimensions.every(Boolean);
   const pendingThumbUrls = useMemo(() => {
     const urls = new Set<string>();
     images.forEach((img, i) => {
-      if (!tileDimensions[i] && !(img.thumbUrl in thumbMeta)) {
+      if (!tileDimensions[i]) {
         urls.add(img.thumbUrl);
       }
     });
@@ -113,7 +107,7 @@ export default function ProjectGallery({
         setLoadedThumbUrls((prev) => new Set(prev).add(url));
         setThumbMeta((prev) => ({
           ...prev,
-          [url]: getValidDimensions(width, height),
+          [url]: getValidDimensions(width, height) ?? { width: 4, height: 3 },
         }));
       };
       img.onerror = () => {

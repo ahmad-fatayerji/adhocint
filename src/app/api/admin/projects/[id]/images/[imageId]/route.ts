@@ -267,8 +267,9 @@ export async function PUT(
             }
         }
 
+        let meta: sharp.Metadata;
         try {
-            await sharp(uploadBytes).rotate().metadata();
+            meta = await sharp(uploadBytes).rotate().metadata();
         } catch {
             return NextResponse.json(
                 { ok: false, error: "Unsupported image format" },
@@ -288,6 +289,8 @@ export async function PUT(
             data: {
                 contentType: uploadType || img.contentType,
                 bytes: BigInt(uploadBytes.byteLength),
+                width: meta.width ?? null,
+                height: meta.height ?? null,
             },
             select: { id: true },
         });

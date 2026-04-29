@@ -1,4 +1,6 @@
-﻿const { PrismaClient } = require("@prisma/client");
+require("@next/env").loadEnvConfig(process.cwd());
+
+const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const { Pool } = require("pg");
 const { S3Client, GetObjectCommand, PutObjectCommand } = require("@aws-sdk/client-s3");

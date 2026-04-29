@@ -19,6 +19,8 @@ export async function GET() {
                     isCover: true,
                     sortOrder: true,
                     createdAt: true,
+                    width: true,
+                    height: true,
                 },
             },
         },
@@ -42,6 +44,8 @@ export async function GET() {
             images: imgs.map((img) => ({
                 fullUrl: `/api/public/project-images/${img.id}`,
                 thumbUrl: `/api/public/project-images/${img.id}?w=720&h=450`,
+                width: img.width,
+                height: img.height,
             })),
         };
     });

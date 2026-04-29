@@ -1,3 +1,5 @@
+require("@next/env").loadEnvConfig(process.cwd());
+
 const fs = require("fs");
 const fsp = require("fs/promises");
 const path = require("path");
@@ -5,6 +7,7 @@ const path = require("path");
 const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const { Pool } = require("pg");
+const sharp = require("sharp");
 
 const {
   S3Client,
@@ -164,6 +167,7 @@ async function main() {
       const objectKey = `projects/${project.id}/legacy/${i.toString().padStart(3, "0")}-${fileName}`;
       const contentType = guessContentType(fileName);
       const st = await fsp.stat(filePath);
+      const meta = await sharp(filePath).rotate().metadata();
 
       await uploadIfMissing(s3, bucket, objectKey, filePath, contentType);
 
@@ -175,6 +179,8 @@ async function main() {
           isCover: i === 0,
           contentType: contentType || null,
           bytes: BigInt(st.size),
+          width: meta.width || null,
+          height: meta.height || null,
         },
         select: { id: true },
       });

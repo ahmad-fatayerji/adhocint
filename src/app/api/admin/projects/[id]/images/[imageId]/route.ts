@@ -144,6 +144,7 @@ export async function GET(
     try {
         const img = await prisma.projectImage.findFirst({
             where: { id: imageId, projectId },
+            select: { id: true, objectKey: true, contentType: true },
         });
         if (!img) return NextResponse.json({ ok: false, error: "Image not found" }, { status: 404 });
 
@@ -244,6 +245,7 @@ export async function PUT(
     try {
         const img = await prisma.projectImage.findFirst({
             where: { id: imageId, projectId },
+            select: { id: true, objectKey: true, contentType: true },
         });
         if (!img) return NextResponse.json({ ok: false }, { status: 404 });
 
@@ -265,9 +267,8 @@ export async function PUT(
             }
         }
 
-        let meta: sharp.Metadata;
         try {
-            meta = await sharp(uploadBytes).rotate().metadata();
+            await sharp(uploadBytes).rotate().metadata();
         } catch {
             return NextResponse.json(
                 { ok: false, error: "Unsupported image format" },
@@ -287,9 +288,8 @@ export async function PUT(
             data: {
                 contentType: uploadType || img.contentType,
                 bytes: BigInt(uploadBytes.byteLength),
-                width: meta.width ?? null,
-                height: meta.height ?? null,
             },
+            select: { id: true },
         });
 
         await uploadThumbs({
@@ -338,10 +338,14 @@ export async function DELETE(
     try {
         const img = await prisma.projectImage.findFirst({
             where: { id: imageId, projectId },
+            select: { id: true, objectKey: true },
         });
         if (!img) return NextResponse.json({ ok: false }, { status: 404 });
 
-        await prisma.projectImage.delete({ where: { id: img.id } });
+        await prisma.projectImage.delete({
+            where: { id: img.id },
+            select: { id: true },
+        });
 
         try {
             await deleteObject({ bucket, key: img.objectKey });

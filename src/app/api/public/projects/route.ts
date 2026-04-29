@@ -5,9 +5,21 @@ export async function GET() {
     const projects = await prisma.project.findMany({
         where: { published: true },
         orderBy: [{ year: "desc" }, { title: "asc" }],
-        include: {
+        select: {
+            id: true,
+            slug: true,
+            title: true,
+            category: true,
+            year: true,
+            description: true,
             images: {
                 orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                select: {
+                    id: true,
+                    isCover: true,
+                    sortOrder: true,
+                    createdAt: true,
+                },
             },
         },
     });

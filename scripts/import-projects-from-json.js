@@ -176,6 +176,7 @@ async function main() {
           contentType: contentType || null,
           bytes: BigInt(st.size),
         },
+        select: { id: true },
       });
     }
 

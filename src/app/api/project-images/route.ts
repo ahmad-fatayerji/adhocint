@@ -21,8 +21,16 @@ export async function GET(req: Request) {
     const slug = normalizeSlug(folder);
     const project = await prisma.project.findUnique({
         where: { slug },
-        include: {
-            images: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+        select: {
+            images: {
+                orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+                select: {
+                    id: true,
+                    isCover: true,
+                    sortOrder: true,
+                    createdAt: true,
+                },
+            },
         },
     });
     if (!project) {

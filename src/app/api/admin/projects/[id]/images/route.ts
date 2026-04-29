@@ -43,6 +43,14 @@ export async function GET(
         const images = await prisma.projectImage.findMany({
             where: { projectId },
             orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            select: {
+                id: true,
+                objectKey: true,
+                sortOrder: true,
+                isCover: true,
+                contentType: true,
+                bytes: true,
+            },
         });
 
         const withUrls = await Promise.all(
@@ -53,8 +61,6 @@ export async function GET(
                 isCover: img.isCover,
                 contentType: img.contentType,
                 bytes: img.bytes ? img.bytes.toString() : null,
-                width: img.width,
-                height: img.height,
                 url: `/api/admin/projects/${projectId}/images/${img.id}`,
                 thumbUrl: `/api/admin/projects/${projectId}/images/${img.id}?w=320&h=320`,
             }))
@@ -127,6 +133,7 @@ export async function POST(
                 contentType,
                 bytes: Number.isFinite(bytes) ? BigInt(bytes) : null,
             },
+            select: { id: true, objectKey: true },
         });
 
         return NextResponse.json(

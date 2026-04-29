@@ -8,8 +8,6 @@ type ProjectImage = {
   isCover: boolean;
   sortOrder: number | null;
   createdAt: Date;
-  width: number | null;
-  height: number | null;
 };
 
 function orderImages(images: ProjectImage[]) {
@@ -30,9 +28,19 @@ export default async function ProjectDetailsPage({
   const { slug } = await params;
   const project = await prisma.project.findFirst({
     where: { slug, published: true },
-    include: {
+    select: {
+      title: true,
+      category: true,
+      year: true,
+      description: true,
       images: {
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: {
+          id: true,
+          isCover: true,
+          sortOrder: true,
+          createdAt: true,
+        },
       },
     },
   });
@@ -43,8 +51,6 @@ export default async function ProjectDetailsPage({
   const images = orderedImages.map((img) => ({
     fullUrl: `/api/public/project-images/${img.id}`,
     thumbUrl: `/api/public/project-images/${img.id}?w=720`,
-    width: img.width,
-    height: img.height,
   }));
 
   return (

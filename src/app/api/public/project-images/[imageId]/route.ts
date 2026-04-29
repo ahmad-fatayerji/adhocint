@@ -65,7 +65,11 @@ export async function GET(
     try {
         const image = await prisma.projectImage.findUnique({
             where: { id: imageId },
-            include: { project: true },
+            select: {
+                objectKey: true,
+                contentType: true,
+                project: { select: { published: true } },
+            },
         });
         if (!image) return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
         if (!image.project.published) return NextResponse.json({ ok: false, error: "Not published" }, { status: 404 });

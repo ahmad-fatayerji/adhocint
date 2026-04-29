@@ -8,8 +8,6 @@ type ProjectImage = {
   isCover: boolean;
   sortOrder: number | null;
   createdAt: Date;
-  width: number | null;
-  height: number | null;
 };
 
 function orderImages(images: ProjectImage[]) {
@@ -42,8 +40,6 @@ export default async function ProjectDetailsPage({
           isCover: true,
           sortOrder: true,
           createdAt: true,
-          width: true,
-          height: true,
         },
       },
     },
@@ -55,8 +51,6 @@ export default async function ProjectDetailsPage({
   const images = orderedImages.map((img) => ({
     fullUrl: `/api/public/project-images/${img.id}`,
     thumbUrl: `/api/public/project-images/${img.id}?w=720`,
-    width: img.width,
-    height: img.height,
   }));
 
   return (

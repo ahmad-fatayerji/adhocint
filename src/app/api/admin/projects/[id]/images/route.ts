@@ -53,6 +53,8 @@ export async function GET(
                 isCover: img.isCover,
                 contentType: img.contentType,
                 bytes: img.bytes ? img.bytes.toString() : null,
+                width: img.width,
+                height: img.height,
                 url: `/api/admin/projects/${projectId}/images/${img.id}`,
                 thumbUrl: `/api/admin/projects/${projectId}/images/${img.id}?w=320&h=320`,
             }))

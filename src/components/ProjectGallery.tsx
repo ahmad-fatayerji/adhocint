@@ -116,10 +116,8 @@ export default function ProjectGallery({
     <>
       <div className="columns-2 sm:columns-3 lg:columns-4 gap-4 sm:gap-5 [column-gap:1.25rem]">
         {images.map((img, i) => {
-          const ratio =
-            img.width && img.height && img.width > 0 && img.height > 0
-              ? img.width / img.height
-              : 4 / 3;
+          const hasRatio =
+            !!img.width && !!img.height && img.width > 0 && img.height > 0;
           return (
             <button
               key={`gallery-${i}`}
@@ -127,7 +125,11 @@ export default function ProjectGallery({
               onClick={() => setActiveIndex(i)}
               className="group relative mb-4 sm:mb-5 w-full break-inside-avoid overflow-hidden rounded-2xl border border-black/10 bg-white text-left"
               aria-label={`Open ${title} image ${i + 1}`}
-              style={{ aspectRatio: ratio }}
+              style={
+                hasRatio
+                  ? { aspectRatio: `${img.width} / ${img.height}` }
+                  : undefined
+              }
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -137,7 +139,9 @@ export default function ProjectGallery({
                 decoding="async"
                 width={img.width ?? undefined}
                 height={img.height ?? undefined}
-                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+                className={`w-full ${
+                  hasRatio ? "h-full" : "h-auto"
+                } object-contain transition-transform duration-300 group-hover:scale-[1.02]`}
               />
             </button>
           );

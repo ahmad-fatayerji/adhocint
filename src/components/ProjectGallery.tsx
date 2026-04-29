@@ -60,19 +60,28 @@ export default function ProjectGallery({
   const [thumbMeta, setThumbMeta] = useState<
     Record<string, ImageDimensions | null>
   >({});
+  const [loadedThumbUrls, setLoadedThumbUrls] = useState<Set<string>>(
+    () => new Set()
+  );
   const activeImage = activeIndex === null ? null : images[activeIndex];
+  const tileDimensions = useMemo(
+    () =>
+      images.map(
+        (img) =>
+          getValidDimensions(img.width, img.height) ?? thumbMeta[img.thumbUrl]
+      ),
+    [images, thumbMeta]
+  );
+  const isLayoutReady = tileDimensions.every(Boolean);
   const pendingThumbUrls = useMemo(() => {
     const urls = new Set<string>();
-    images.forEach((img) => {
-      if (
-        !getValidDimensions(img.width, img.height) &&
-        !(img.thumbUrl in thumbMeta)
-      ) {
+    images.forEach((img, i) => {
+      if (!tileDimensions[i] && !(img.thumbUrl in thumbMeta)) {
         urls.add(img.thumbUrl);
       }
     });
     return Array.from(urls);
-  }, [images, thumbMeta]);
+  }, [images, thumbMeta, tileDimensions]);
   const previewWidth = useMemo(() => {
     if (typeof window === "undefined") {
       return PREVIEW_WIDTHS[PREVIEW_WIDTHS.length - 1];
@@ -101,6 +110,7 @@ export default function ProjectGallery({
         if (cancelled) return;
         const width = img.naturalWidth || 0;
         const height = img.naturalHeight || 0;
+        setLoadedThumbUrls((prev) => new Set(prev).add(url));
         setThumbMeta((prev) => ({
           ...prev,
           [url]: getValidDimensions(width, height),
@@ -108,7 +118,7 @@ export default function ProjectGallery({
       };
       img.onerror = () => {
         if (cancelled) return;
-        setThumbMeta((prev) => ({ ...prev, [url]: null }));
+        setThumbMeta((prev) => ({ ...prev, [url]: { width: 4, height: 3 } }));
       };
       img.src = url;
     });
@@ -165,45 +175,59 @@ export default function ProjectGallery({
 
   return (
     <>
-      <div className="columns-2 sm:columns-3 lg:columns-4 gap-4 sm:gap-5 [column-gap:1.25rem]">
-        {images.map((img, i) => {
-          const dimensions =
-            getValidDimensions(img.width, img.height) ?? thumbMeta[img.thumbUrl];
-          if (!dimensions) {
+      {!isLayoutReady ? (
+        <div
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5"
+          aria-label="Loading gallery layout"
+        >
+          {images.slice(0, Math.min(images.length, 12)).map((_, i) => (
+            <div
+              key={`gallery-layout-placeholder-${i}`}
+              className="aspect-[4/3] rounded-2xl border border-black/10 bg-black/5 skeleton-shimmer"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="columns-2 sm:columns-3 lg:columns-4 gap-4 sm:gap-5 [column-gap:1.25rem]">
+          {images.map((img, i) => {
+            const dimensions = tileDimensions[i]!;
+            const isLoaded = loadedThumbUrls.has(img.thumbUrl);
             return (
-              <div
-                key={`gallery-placeholder-${i}`}
-                className="mb-4 sm:mb-5 aspect-[4/3] w-full break-inside-avoid rounded-2xl border border-black/10 bg-black/5 skeleton-shimmer"
-                aria-label={`Loading ${title} image ${i + 1}`}
-              />
+              <button
+                key={`gallery-${i}`}
+                type="button"
+                onClick={() => setActiveIndex(i)}
+                className="group relative mb-4 sm:mb-5 w-full break-inside-avoid overflow-hidden rounded-2xl border border-black/10 bg-white text-left"
+                aria-label={`Open ${title} image ${i + 1}`}
+                style={{
+                  aspectRatio: `${dimensions.width} / ${dimensions.height}`,
+                }}
+              >
+                {!isLoaded && (
+                  <div className="absolute inset-0 bg-black/5 skeleton-shimmer" />
+                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={img.thumbUrl}
+                  alt={`${title} ${i + 1}`}
+                  loading="lazy"
+                  decoding="async"
+                  onLoad={() =>
+                    setLoadedThumbUrls((prev) =>
+                      new Set(prev).add(img.thumbUrl)
+                    )
+                  }
+                  width={dimensions.width}
+                  height={dimensions.height}
+                  className={`h-full w-full object-contain transition-[opacity,transform] duration-300 group-hover:scale-[1.02] ${
+                    isLoaded ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+              </button>
             );
-          }
-
-          return (
-            <button
-              key={`gallery-${i}`}
-              type="button"
-              onClick={() => setActiveIndex(i)}
-              className="group relative mb-4 sm:mb-5 w-full break-inside-avoid overflow-hidden rounded-2xl border border-black/10 bg-white text-left"
-              aria-label={`Open ${title} image ${i + 1}`}
-              style={{
-                aspectRatio: `${dimensions.width} / ${dimensions.height}`,
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img.thumbUrl}
-                alt={`${title} ${i + 1}`}
-                loading="lazy"
-                decoding="async"
-                width={dimensions.width}
-                height={dimensions.height}
-                className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
-              />
-            </button>
-          );
-        })}
-      </div>
+          })}
+        </div>
+      )}
       {activeImage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md p-3 sm:p-4"

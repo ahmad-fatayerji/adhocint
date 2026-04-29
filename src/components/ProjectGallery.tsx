@@ -165,57 +165,45 @@ export default function ProjectGallery({
 
   return (
     <>
-      {pendingThumbUrls.length > 0 ? (
-        <div
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5"
-          aria-label="Loading gallery images"
-        >
-          {images.slice(0, Math.min(images.length, 12)).map((_, i) => (
-            <div
-              key={`gallery-placeholder-${i}`}
-              className="aspect-[4/3] rounded-2xl border border-black/10 bg-black/5 skeleton-shimmer"
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="columns-2 sm:columns-3 lg:columns-4 gap-4 sm:gap-5 [column-gap:1.25rem]">
-          {images.map((img, i) => {
-            const dimensions =
-              getValidDimensions(img.width, img.height) ??
-              thumbMeta[img.thumbUrl];
-            const hasRatio = !!dimensions;
+      <div className="columns-2 sm:columns-3 lg:columns-4 gap-4 sm:gap-5 [column-gap:1.25rem]">
+        {images.map((img, i) => {
+          const dimensions =
+            getValidDimensions(img.width, img.height) ?? thumbMeta[img.thumbUrl];
+          if (!dimensions) {
             return (
-              <button
-                key={`gallery-${i}`}
-                type="button"
-                onClick={() => setActiveIndex(i)}
-                className="group relative mb-4 sm:mb-5 w-full break-inside-avoid overflow-hidden rounded-2xl border border-black/10 bg-white text-left"
-                aria-label={`Open ${title} image ${i + 1}`}
-                style={
-                  hasRatio
-                    ? {
-                        aspectRatio: `${dimensions.width} / ${dimensions.height}`,
-                      }
-                    : undefined
-                }
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={img.thumbUrl}
-                  alt={`${title} ${i + 1}`}
-                  loading="lazy"
-                  decoding="async"
-                  width={dimensions?.width}
-                  height={dimensions?.height}
-                  className={`w-full ${
-                    hasRatio ? "h-full" : "h-auto"
-                  } object-contain transition-transform duration-300 group-hover:scale-[1.02]`}
-                />
-              </button>
+              <div
+                key={`gallery-placeholder-${i}`}
+                className="mb-4 sm:mb-5 aspect-[4/3] w-full break-inside-avoid rounded-2xl border border-black/10 bg-black/5 skeleton-shimmer"
+                aria-label={`Loading ${title} image ${i + 1}`}
+              />
             );
-          })}
-        </div>
-      )}
+          }
+
+          return (
+            <button
+              key={`gallery-${i}`}
+              type="button"
+              onClick={() => setActiveIndex(i)}
+              className="group relative mb-4 sm:mb-5 w-full break-inside-avoid overflow-hidden rounded-2xl border border-black/10 bg-white text-left"
+              aria-label={`Open ${title} image ${i + 1}`}
+              style={{
+                aspectRatio: `${dimensions.width} / ${dimensions.height}`,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={img.thumbUrl}
+                alt={`${title} ${i + 1}`}
+                loading="lazy"
+                decoding="async"
+                width={dimensions.width}
+                height={dimensions.height}
+                className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+              />
+            </button>
+          );
+        })}
+      </div>
       {activeImage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md p-3 sm:p-4"

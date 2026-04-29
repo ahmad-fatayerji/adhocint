@@ -141,10 +141,69 @@ export async function POST(req: Request) {
     }
 
     const subject = "Your ADHOC Admin verification code";
-    const text = `Your verification code is: ${issued.code}\n\nThis code expires in 10 minutes.`;
+    const text = `Your verification code is: ${issued.code}\n\nThis code expires in 10 minutes. Do not share it with anyone.`;
+
+    const digits = issued.code.split('');
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Verification Code</title>
+</head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:40px 0;">
+    <tr><td align="center">
+      <table width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#3960ad 0%,#958349 100%);padding:32px 40px 28px;text-align:center;">
+            <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:1px;text-transform:uppercase;">adhoc<span style="opacity:0.75;">int</span></span>
+            <p style="margin:14px 0 0;font-size:13px;color:rgba(255,255,255,0.8);letter-spacing:0.5px;text-transform:uppercase;font-weight:600;">Admin Portal</p>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:36px 40px 28px;text-align:center;">
+            <p style="margin:0 0 6px;font-size:22px;font-weight:700;color:#0a0a0a;">Verification Code</p>
+            <p style="margin:0 0 28px;font-size:14px;color:#666;line-height:1.6;">
+              Use the code below to complete your sign-in.<br/>It expires in <strong style="color:#3960ad;">10 minutes</strong>.
+            </p>
+
+            <!-- OTP digits -->
+            <table cellpadding="0" cellspacing="0" style="margin:0 auto 28px;">
+              <tr>
+                ${digits.map((d, i) => `
+                <td style="padding:${i === 2 ? '0 10px 0 0' : '0 4px 0 0'};">
+                  <div style="width:48px;height:60px;border-radius:8px;background:#f7f8fb;border:2px solid ${i < 3 ? '#3960ad' : '#958349'};display:inline-block;text-align:center;line-height:60px;font-size:28px;font-weight:700;color:#0a0a0a;font-family:'Courier New',monospace;">${d}</div>
+                </td>`).join('')}
+              </tr>
+            </table>
+
+            <p style="margin:0 0 4px;font-size:12px;color:#aaa;">Didn't request this? You can safely ignore this email.</p>
+            <p style="margin:0;font-size:12px;color:#e05252;font-weight:600;">Never share this code with anyone.</p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f7f8fb;padding:18px 40px;border-top:1px solid #e8eaed;text-align:center;">
+            <p style="margin:0;font-size:11px;color:#aaa;">
+              &copy; ${new Date().getFullYear()} adhocint &mdash; This is an automated security email.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 
     try {
-        await sendMail({ to: user.email, subject, text });
+        await sendMail({ to: user.email, subject, text, html });
     } catch {
         // Invalidate this OTP if we failed to send it.
         try {

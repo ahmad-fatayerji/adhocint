@@ -265,6 +265,16 @@ export async function PUT(
             }
         }
 
+        let meta: sharp.Metadata;
+        try {
+            meta = await sharp(uploadBytes).rotate().metadata();
+        } catch {
+            return NextResponse.json(
+                { ok: false, error: "Unsupported image format" },
+                { status: 415 }
+            );
+        }
+
         await putObject({
             bucket,
             key: img.objectKey,
@@ -277,17 +287,10 @@ export async function PUT(
             data: {
                 contentType: uploadType || img.contentType,
                 bytes: BigInt(uploadBytes.byteLength),
+                width: meta.width ?? null,
+                height: meta.height ?? null,
             },
         });
-
-        try {
-            await sharp(uploadBytes).metadata();
-        } catch {
-            return NextResponse.json(
-                { ok: false, error: "Unsupported image format" },
-                { status: 415 }
-            );
-        }
 
         await uploadThumbs({
             bucket,

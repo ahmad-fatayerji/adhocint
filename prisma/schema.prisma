@@ -98,6 +98,8 @@ model ProjectImage {
     isCover     Boolean  @default(false)
     contentType String?
     bytes       BigInt?
+    width       Int?
+    height      Int?
     createdAt   DateTime @default(now())
 
     project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)

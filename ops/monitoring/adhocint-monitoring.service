@@ -1,0 +1,13 @@
+[Unit]
+Description=adhocint functional monitoring probes
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/adhocint/shared/monitoring/config.json
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/adhocint
+ExecStart=/usr/bin/python3 /opt/adhocint/ops/monitoring/runner.py
+ExecStopPost=-/usr/bin/podman rm -f adhocint-monitor-probe
+TimeoutStartSec=100
+UMask=0077

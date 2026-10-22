@@ -1,0 +1,18 @@
+[Unit]
+Description=Uptime Kuma monitoring
+
+[Container]
+Image=docker.io/louislam/uptime-kuma@sha256:9912da7d7d9b6ddc0c2d904beb84d24689c1ed9c33b81419eb9008663a92a329
+ContainerName=uptime-kuma
+User=0
+Network=host
+Environment=PORT=3002
+Volume=uptime-kuma-data:/app/data
+Volume=/run/user/1000/podman/podman.sock:/var/run/docker.sock
+
+[Service]
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

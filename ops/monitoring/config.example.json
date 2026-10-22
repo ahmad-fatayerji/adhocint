@@ -1,0 +1,14 @@
+{
+  "kuma_url": "http://127.0.0.1:3002",
+  "app_env": "/opt/adhocint/shared/.env.production",
+  "probe_env": "/opt/adhocint/shared/monitoring/probes.env",
+  "runtime_image": "localhost/adhocint-web:latest",
+  "push_tokens": {
+    "db": "SET_ON_SERVER",
+    "storage": "SET_ON_SERVER",
+    "images": "SET_ON_SERVER",
+    "gokapi_api": "SET_ON_SERVER",
+    "gokapi_transfer": "SET_ON_SERVER",
+    "runner": "SET_ON_SERVER"
+  }
+}

@@ -125,6 +125,9 @@ jobs:
             # Run deployment (pull, build, migrations, etc.)
             GIT_PULL=1 ops/podman-quadlet-deploy.sh
 
+            # Refresh monitoring units; Kuma upgrades remain an explicit operation.
+            bash ops/monitoring/install.sh
+
             # Optional: show status at end (helps Actions logs)
             systemctl --user daemon-reload || true
             systemctl --user status adhocint-db adhocint-minio adhocint-web --no-pager || true

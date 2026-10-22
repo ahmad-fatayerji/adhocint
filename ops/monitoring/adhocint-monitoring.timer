@@ -1,0 +1,11 @@
+[Unit]
+Description=Schedule adhocint functional monitoring
+
+[Timer]
+OnBootSec=45s
+OnUnitActiveSec=30s
+AccuracySec=1s
+Unit=adhocint-monitoring.service
+
+[Install]
+WantedBy=timers.target

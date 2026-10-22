@@ -6,6 +6,16 @@ ENV_FILE="${ENV_FILE:-$APP_DIR/shared/.env.production}"
 NETWORK_NAME="${PODMAN_NETWORK:-adhocint}"
 SYSTEMD_SCOPE="${SYSTEMD_SCOPE:-auto}"
 
+if [[ -e "$APP_DIR/shared/storage-migration.lock" ]]; then
+  echo "Storage maintenance is in progress; refusing deployment." >&2
+  exit 1
+fi
+if [[ "${ADHOCINT_DEPLOY_LOCK_HELD:-0}" != 1 ]]; then
+  exec 9>"$APP_DIR/shared/deploy.lock"
+  flock -n 9 || { echo "Another deployment is running." >&2; exit 1; }
+  export ADHOCINT_DEPLOY_LOCK_HELD=1
+fi
+
 if [[ "$SYSTEMD_SCOPE" == "auto" ]]; then
   if [[ "$(id -u)" -eq 0 ]]; then
     SYSTEMD_SCOPE="system"
@@ -108,6 +118,16 @@ start_unit() {
 start_unit adhocint-db.service
 start_unit adhocint-minio.service
 
+# Starting an already-active unit does not apply a changed image definition.
+# Image upgrades require the documented backup/rehearsal/cutover procedure.
+EXPECTED_STORAGE_IMAGE="$(sed -n 's/^Image=//p' "$APP_DIR/ops/quadlet/adhocint-minio.container")"
+EXPECTED_STORAGE_ID="$(podman image inspect "$EXPECTED_STORAGE_IMAGE" --format '{{.Id}}')"
+RUNNING_STORAGE_ID="$(podman inspect adhocint-minio --format '{{.Image}}')"
+if [[ "$RUNNING_STORAGE_ID" != "$EXPECTED_STORAGE_ID" ]]; then
+  echo "Storage image differs from the pinned image; perform a storage migration before deploying." >&2
+  exit 1
+fi
+
 echo "==> Waiting for Postgres"
 POSTGRES_USER="$(grep -E '^POSTGRES_USER=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
 POSTGRES_DB="$(grep -E '^POSTGRES_DB=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
@@ -117,27 +137,15 @@ for i in $(seq 1 60); do
   fi
   sleep 1
 done
+podman exec adhocint-db pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null
+
+echo "==> Waiting for authenticated S3 access and ensuring bucket"
+source "$APP_DIR/ops/storage-common.sh"
+storage_client ensure-bucket >/dev/null
 
 echo "==> Running migrations"
 podman run --rm --network "$NETWORK_NAME" --env-file "$ENV_FILE" \
   localhost/adhocint-migrate:latest npx prisma migrate deploy
-
-echo "==> Ensuring MinIO bucket"
-MINIO_ENDPOINT="$(grep -E '^MINIO_ENDPOINT=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
-MINIO_ENDPOINT="${MINIO_ENDPOINT:-http://adhocint-minio:9000}"
-MINIO_ROOT_USER="$(grep -E '^MINIO_ROOT_USER=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
-MINIO_ROOT_PASSWORD="$(grep -E '^MINIO_ROOT_PASSWORD=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
-MINIO_BUCKET="$(grep -E '^MINIO_BUCKET=' "$ENV_FILE" | tail -n1 | cut -d= -f2-)"
-MC_CONFIG_DIR="${MC_CONFIG_DIR:-$APP_DIR/shared/.mc}"
-mkdir -p "$MC_CONFIG_DIR"
-podman run --rm --network "$NETWORK_NAME" --env-file "$ENV_FILE" \
-  -v "$MC_CONFIG_DIR:/mc" \
-  docker.io/minio/mc:latest --config-dir /mc \
-  alias set local "$MINIO_ENDPOINT" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
-podman run --rm --network "$NETWORK_NAME" --env-file "$ENV_FILE" \
-  -v "$MC_CONFIG_DIR:/mc" \
-  docker.io/minio/mc:latest --config-dir /mc \
-  mb -p "local/$MINIO_BUCKET" || true
 
 echo "==> Starting web"
 if "${SYSTEMCTL[@]}" is-active --quiet adhocint-web.service; then

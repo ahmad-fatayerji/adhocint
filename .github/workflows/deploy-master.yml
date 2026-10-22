@@ -5,7 +5,9 @@ on:
     branches: [master]
   workflow_dispatch:
 
-concurrency: adhocint-deploy
+concurrency:
+  group: adhocint-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -41,12 +43,19 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
+          command_timeout: 30m
           envs: NEXT_PUBLIC_GA_MEASUREMENT_ID,APP_PORT,AUTH_SESSION_SECRET,OTP_PEPPER,ADMIN_SESSION_COOKIE,ADMIN_SESSION_TTL_DAYS,EMAIL_HOST,EMAIL_PORT,EMAIL_USER,EMAIL_PASS,EMAIL_FROM,CONTACT_TO,POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB,MINIO_ROOT_USER,MINIO_ROOT_PASSWORD,MINIO_BUCKET,MINIO_PORT,MINIO_CONSOLE_PORT,SUPER_ADMIN_EMAIL,SUPER_ADMIN_PASSWORD
           script: |
             set -euo pipefail
 
             APP_DIR=/opt/adhocint
             SHARED="$APP_DIR/shared"
+
+            # Check before rewriting secrets or copying unit definitions.
+            if [ -e "$SHARED/storage-migration.lock" ]; then
+              echo "Storage maintenance is in progress; refusing deployment."
+              exit 1
+            fi
 
             # Ensure repo exists (bootstrap safety)
             if [ ! -d "$APP_DIR/.git" ]; then

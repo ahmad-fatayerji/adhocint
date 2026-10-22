@@ -1,7 +1,8 @@
 [Unit]
 Description=adhocint web
 After=adhocint-db.service adhocint-minio.service
-Requires=adhocint-db.service adhocint-minio.service
+Requires=adhocint-db.service
+Wants=adhocint-minio.service
 
 [Container]
 Image=localhost/adhocint-web:latest

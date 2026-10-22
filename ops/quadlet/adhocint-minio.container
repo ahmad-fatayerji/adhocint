@@ -2,7 +2,9 @@
 Description=adhocint minio
 
 [Container]
-Image=docker.io/minio/minio:latest
+Image=cgr.dev/chainguard/minio@sha256:34a613c744354002d96e57b548bef0f11bddb427856960f4f821a46b60e3fb05
+# Preserve the existing volume ownership inside rootless Podman.
+User=0
 ContainerName=adhocint-minio
 EnvironmentFile=/opt/adhocint/shared/.env.production
 Volume=adhocint-minio-data:/data

@@ -14,7 +14,8 @@ services:
       retries: 20
 
   minio:
-    image: minio/minio:latest
+    image: cgr.dev/chainguard/minio@sha256:34a613c744354002d96e57b548bef0f11bddb427856960f4f821a46b60e3fb05
+    user: "0"
     command: server /data --console-address ":9001"
     env_file:
       - .env.production
@@ -23,21 +24,19 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
 
   minio-init:
-    image: minio/mc:latest
+    image: docker.io/rclone/rclone@sha256:2687085f718d3c628f7fdfb77c52a1d344332aed543110bb88088f2c70d43eb5
     depends_on:
       minio:
-        condition: service_healthy
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      "mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} &&
-       mc mb -p local/$${MINIO_BUCKET} || true"
+        condition: service_started
+    user: "0"
+    volumes:
+      - ./ops/storage-client-entrypoint.sh:/ops/storage-client-entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/ops/storage-client-entrypoint.sh"]
+    command: ["ensure-bucket"]
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
     env_file:
       - .env.production
 
@@ -50,6 +49,8 @@ services:
         condition: service_healthy
     env_file:
       - .env.production
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
     command: ["npx", "prisma", "migrate", "deploy"]
 
 volumes:

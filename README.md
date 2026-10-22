@@ -29,6 +29,12 @@ Update `/src/lib/analytics.ts` if you need additional events or destinations.
 
 ## Deployment
 
-Production deploys are handled via the GitHub Action in `.github/workflows/deploy-master.yml`
-which builds a standalone Next.js bundle, uploads it to the server via `rsync`, and
-restarts the PM2 process.
+Production deploys use `.github/workflows/deploy-master.yml` and rootless Podman
+Quadlet under the `deploy` account. The repository is at `/opt/adhocint`; runtime
+configuration is `/opt/adhocint/shared/.env.production`.
+
+Object storage remains MinIO, packaged by Chainguard and pinned by digest. The
+`adhocint-minio` container, `adhocint-minio-data` volume, and `MINIO_*` variables
+retain their existing names. Container UID 0 preserves the existing volume
+ownership inside rootless Podman. Application S3 code and the database schema do
+not change. See [storage operations](ops/STORAGE.md) for upgrades and recovery.
